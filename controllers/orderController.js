@@ -79,7 +79,8 @@ const createOrderItems = async (cartItems, orderId, cgst, sgst, igst) => {
   return orderItems;
 };
 
-const sendOrderEmails = async (orderItems, customerDetails, newOrder) => {
+const sendOrderEmails = async (orderItems, customerDetails, newOrder,totalAmount) => {
+  
   for (const item of orderItems) {
     const product = await Product.findByPk(item.product_id, {
       include: [
@@ -218,7 +219,7 @@ const sendOrderEmails = async (orderItems, customerDetails, newOrder) => {
             Your order has been received with the following details:<br>
             Order ID: ${newOrder.order_id} <br>
             Order Date: ${newOrder.order_date}<br>
-            Total Amount: ${newOrder.total_amount}<br>
+            Total Amount: ${newOrder.totalAmount}<br>
             <h4>Order Items:</h4>
         <ul>
         ${orderItems
@@ -403,7 +404,7 @@ const addOrder = async (req, res) => {
         transaction: t,
       });
 
-      await sendOrderEmails(orderItems, customerDetails, newOrder);
+      await sendOrderEmails(orderItems, customerDetails, newOrder,totalAmount);
 
       res.status(201).json({
         message: "Order added successfully",
