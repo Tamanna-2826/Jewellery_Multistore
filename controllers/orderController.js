@@ -79,9 +79,34 @@ const createOrderItems = async (cartItems, orderId, cgst, sgst, igst) => {
   return orderItems;
 };
 
-const sendOrderEmails = async (orderItems, customerDetails, newOrder,totalAmount) => {
-  
-  for (const item of orderItems) {
+const sendOrderEmails = async ( orderItems,customerDetails, newOrder, totalAmount) => {
+
+  const detailedOrderItems = await Promise.all(
+    orderItems.map(async (item) => {
+      const product = await Product.findByPk(item.product_id, {
+        include: [
+          {
+            model: Vendor,
+            as: "vendor",
+            attributes: ["first_name", "email"],
+          },
+        ],
+      });
+
+      if (!product) {
+        throw new Error(`Product with ID ${item.product_id} not found`);
+      }
+      return {
+        ...item,
+      product_name: product.product_name,
+      mrp: product.mrp, 
+      size: product.size, 
+      vendor: product.vendor,
+      };
+    })
+  );
+
+  for (const item of detailedOrderItems) {
     const product = await Product.findByPk(item.product_id, {
       include: [
         {
@@ -219,20 +244,16 @@ const sendOrderEmails = async (orderItems, customerDetails, newOrder,totalAmount
             Your order has been received with the following details:<br>
             Order ID: ${newOrder.order_id} <br>
             Order Date: ${newOrder.order_date}<br>
-            Total Amount: ${newOrder.totalAmount}<br>
+            Total Amount: ${totalAmount}<br>
             <h4>Order Items:</h4>
         <ul>
-        ${orderItems
-          .map(
-            (item) => `
+        ${detailedOrderItems.map((item) => `
         <li>
             <h4>${item.product_name}</h4>
             <p>Quantity: ${item.quantity}</p>
             <p>Price: ${item.unit_price}</p>
             <p>Total: ${item.total_price}</p>
-            <p>Description: ${item.main_description}</p>
             <p>MRP: ${item.mrp}</p>
-            <p>Selling Price: ${item.selling_price}</p>
             <p>Size: ${item.size}</p>
         </li>
     `
@@ -253,7 +274,9 @@ const sendOrderEmails = async (orderItems, customerDetails, newOrder,totalAmount
         </html>
   `;
   sendEmail(
-    customerDetails.email, "Order Request Received",customerHtmlContent
+    customerDetails.email,
+    "Order Request Received",
+    customerHtmlContent
   );
 };
 
@@ -279,10 +302,10 @@ const addOrder = async (req, res) => {
       }
 
       const cartItems = cart.cartItems;
-      
-        if (cartItems.length === 0) {
-          return res.status(400).json({ message: "Cart is empty" });
-        }
+
+      if (cartItems.length === 0) {
+        return res.status(400).json({ message: "Cart is empty" });
+      }
 
       const shippingAddress = await Address.findOne({
         where: {
@@ -404,7 +427,7 @@ const addOrder = async (req, res) => {
         transaction: t,
       });
 
-      await sendOrderEmails(orderItems, customerDetails, newOrder,totalAmount);
+      await sendOrderEmails(orderItems, customerDetails, newOrder, totalAmount);
 
       res.status(201).json({
         message: "Order added successfully",
@@ -425,7 +448,7 @@ const getOrderDetailsByUserId = async (req, res) => {
     const orders = await Order.findAll({
       where: { user_id },
       attributes: ["order_id", "order_date", "status", "total_amount"],
-      order: [["order_date", "DESC"]], 
+      order: [["order_date", "DESC"]],
     });
 
     if (!orders.length) {
@@ -444,7 +467,7 @@ const getOrderDetailsByUserId = async (req, res) => {
 
 const getDetailedOrderDetails = async (req, res) => {
   const { user_id, order_id } = req.params;
-  console.log(user_id , " ",order_id);
+  console.log(user_id, " ", order_id);
 
   try {
     const order = await Order.findOne({
@@ -489,4 +512,4 @@ const getDetailedOrderDetails = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve order details" });
   }
 };
-module.exports = { addOrder,getOrderDetailsByUserId,getDetailedOrderDetails };
+module.exports = { addOrder, getOrderDetailsByUserId, getDetailedOrderDetails };

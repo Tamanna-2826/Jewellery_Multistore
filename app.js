@@ -8,6 +8,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 
 
@@ -32,6 +33,8 @@ app.use('/cart', cartRoutes);
 app.use('/wishlist', wishlistRoutes);
 app.use('/address', addressRoutes);
 app.use('/order', orderRoutes);
+app.use('/payment', paymentRoutes);
+
 
 sequelize.sync() .then(() => { 
     console.log("Database synced");}).catch((error) => {
