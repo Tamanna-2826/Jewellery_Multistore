@@ -63,6 +63,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true
     },
+    vendor_status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'pending',
+      validate: {
+        isIn: [['pending', 'confirmed', 'cancelled']]
+    }
+    },
     deletedAt: {
       type: DataTypes.DATE,
       allowNull: true

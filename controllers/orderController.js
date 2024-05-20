@@ -299,6 +299,13 @@ const addOrder = async (req, res) => {
             model: CartItem,
             as: "cartItems",
             attributes: ["product_id", "quantity", "price", "size"],
+            include: [
+              {
+                model: Product,
+                as: "product",
+                attributes: ["product_name", "p_images"],
+              },
+            ],
           },
         ],
         transaction: t,
@@ -373,6 +380,8 @@ const addOrder = async (req, res) => {
           transaction: t,
         });
 
+        const product_temp = item.product || product; // Access product details from include or from Product.findOne
+
         if (!product) {
           throw new Error("Product not found");
         }
@@ -390,6 +399,15 @@ const addOrder = async (req, res) => {
           sgst = 0;
           igst = 18;
         }
+
+        console.log("product_temp.p_images:", product_temp.p_images);
+
+        const productImage = product_temp.p_images[0]; // Take the first image URL from the array
+        console.log("productImage:", productImage);
+        
+        // Assign product_name and product_image to item
+        item.product_name = product_temp.product_name;
+        item.product_image = productImage;
       }
 
       let totalAmount = 0;
@@ -436,10 +454,28 @@ const addOrder = async (req, res) => {
 
       await sendOrderEmails(orderItems, customerDetails, newOrder, totalAmount);
 
+      const responseOrderItems = await Promise.all(
+        orderItems.map(async (item) => {
+          const product = await Product.findByPk(item.product_id, {
+            attributes: ["product_name", "p_images"],
+          });
+      
+          if (!product) {
+            throw new Error(`Product with ID ${item.product_id} not found`);
+          }
+      
+          return {
+            ...item,
+            product_name: product.product_name,
+            product_image: product.p_images.length > 0 ? product.p_images[0] : null,
+          };
+        })
+      );
+
       res.status(201).json({
         message: "Order added successfully",
         order: newOrder,
-        orderItems,
+        orderItems: responseOrderItems,
       });
     });
   } catch (error) {
@@ -447,6 +483,7 @@ const addOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to add order" });
   }
 };
+
 
 const getOrderDetailsByUserId = async (req, res) => {
   const { user_id } = req.params;
@@ -580,6 +617,36 @@ const getAdminDetailedOrderDetails = async (req, res) => {
             "email",
             "phone_no",
           ],
+          include: [
+            {
+              model: Address,
+              as: "addresses",
+              attributes: [
+                "address_id",
+                "user_id",
+                "first_name",
+                "last_name",
+                "phone_no",
+                "street_address",
+                "city_id",
+                "state_id",
+                "pincode",
+                "address_type",
+              ],
+              include: [
+                {
+                  model: City,
+                  as: "city",
+                  attributes: ["city_name"],
+                },
+                {
+                  model: State,
+                  as: "state",
+                  attributes: ["state_name"],
+                },
+              ],
+            },
+          ],
         },
         {
           model: OrderItem,
@@ -617,34 +684,6 @@ const getAdminDetailedOrderDetails = async (req, res) => {
             },
           ],
         },
-        {
-          model: Address,
-          as: "address",
-          attributes: [
-            "address_id",
-            "user_id",
-            "first_name",
-            "last_name",
-            "phone_no",
-            "street_address",
-            "city_id",
-            "state_id",
-            "pincode",
-            "address_type",
-          ],
-          include: [
-            {
-              model: City,
-              as: "city",
-              attributes: ["city_name"],
-            },
-            {
-              model: State,
-              as: "state",
-              attributes: ["state_name"],
-            },
-          ],
-        },
       ],
     });
 
@@ -654,7 +693,7 @@ const getAdminDetailedOrderDetails = async (req, res) => {
 
     res.status(200).json({
       message: "Detailed order details retrieved successfully",
-      order: order
+      order: order,
     });
   } catch (error) {
     console.error("Error retrieving detailed order details:", error);
@@ -664,10 +703,241 @@ const getAdminDetailedOrderDetails = async (req, res) => {
   }
 };
 
+const getPendingOrdersForVendor = async (req, res) => {
+  const { vendor_id } = req.params;
+
+  try {
+    const orders = await Order.findAll({
+      where: {
+        status: "pending",
+      },
+      order: [["order_date", "DESC"]],
+      include: [
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: [
+            "product_id",
+            "quantity",
+            "unit_price",
+            "cgst",
+            "sgst",
+            "igst",
+            "sub_total",
+            "total_price",
+          ],
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: ["product_name", "mrp"],
+              where: {
+                vendor_id,
+              },
+              include: [
+                {
+                  model: Vendor,
+                  as: "vendor",
+                  attributes: ["vendor_id", "first_name", "last_name"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (orders.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No pending orders found for this vendor" });
+    }
+
+    res.status(200).json({
+      message: "Pending orders retrieved successfully",
+      orders,
+    });
+  } catch (error) {
+    console.error("Error retrieving pending orders:", error);
+    res.status(500).json({ message: "Failed to retrieve pending orders" });
+  }
+};
+
+const updateOrderItemStatus = async (req, res) => {
+  const { order_id, orderItem_id } = req.params;
+  const { vendor_status } = req.body;
+
+  try {
+    const orderItem = await OrderItem.findOne({
+      where: {
+        order_id,
+        orderItem_id,
+      },
+    });
+
+    if (!orderItem) {
+      return res.status(404).json({ message: "Order Item not found" });
+    }
+
+    orderItem.vendor_status = vendor_status;
+    await orderItem.save();
+
+    res.status(200).json({ message: "Vendor status updated successfully" });
+  } catch (error) {
+    console.error("Error updating vendor status:", error);
+    res.status(500).json({ message: "Failed to update vendor status" });
+  }
+};
+
+const updateOrderStatus = async (req, res) => {
+  const { order_id } = req.params;
+
+  try {
+    const order = await Order.findByPk(order_id, {
+      include: [
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: ["vendor_status"],
+        },
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const orderItems = order.orderItems;
+
+    const allConfirmed = orderItems.every(
+      (item) => item.vendor_status === "confirmed"
+    );
+
+    if (allConfirmed) {
+      await order.update({ status: "placed" });
+
+      const userDetails = await order.getUser();
+
+      await sendOrderConfirmationEmail(userDetails, order);
+
+      return res.status(200).json({
+        message: 'Order status updated to "placed" and confirmation email sent',
+      });
+    } else {
+      return res.status(400).json({
+        message:
+          'Order status cannot be updated to "placed" yet. Not all items have vendor_status set to "confirmed"',
+      });
+    }
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Failed to update order status" });
+  }
+};
+
+const sendOrderConfirmationEmail = async (userDetails, order) => {
+  const htmlContent = `
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Confirmation</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f4f4;
+            margin: 0;
+          }
+          .container {
+            max-width: 600px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            margin-bottom: 20px;
+          }
+          h1 {
+            text-align: center;
+          }
+          .header img {
+            max-width: 200px;
+          }
+          .content {
+            margin-bottom: 20px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 3px solid #ccc;
+            background-color: #d7d3d3;
+            height: 100px;
+          }
+          .button {
+            justify-content: center;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            align-items: center;
+            text-align: center;
+            border-radius: 5px;
+            margin-left: 35%;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Confirmation</h1>
+          </div>
+          <div class="content">
+            <p>Dear ${userDetails.first_name} ${userDetails.last_name},</p>
+            <p>Your order has been confirmed and is now being processed. Here are your order details:</p>
+            <ul>
+              ${order.orderItems
+                .map(
+                  (item) => `
+                    <li>${item.quantity}x ${item.product.product_name} - $${item.total_price}</li>
+                  `
+                )
+                .join("")}
+            </ul>
+            <p>Total Price: $${order.total_amount}</p>
+            <p>Thank you for shopping with us!</p>
+          </div>
+          <div class="footer">
+            <a href="#" class="button">Track Order</a>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    await sendEmail(userDetails.email, "Order Confirmation", htmlContent);
+    console.log("Order confirmation email sent successfully");
+  } catch (error) {
+    console.error("Error sending order confirmation email:", error);
+  }
+};
+
 module.exports = {
   addOrder,
   getOrderDetailsByUserId,
   getDetailedOrderDetails,
   getBasicOrderDetailsForAdmin,
   getAdminDetailedOrderDetails,
+  getPendingOrdersForVendor,
+  updateOrderItemStatus,
+  updateOrderStatus,
 };

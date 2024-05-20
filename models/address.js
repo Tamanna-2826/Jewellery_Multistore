@@ -4,6 +4,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Address extends Model {
     static associate(models) {
+
       Address.belongsTo(models.User, {
         foreignKey: 'user_id',
         onDelete: 'CASCADE',

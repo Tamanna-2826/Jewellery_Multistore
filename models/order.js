@@ -10,6 +10,9 @@ module.exports = (sequelize, DataTypes) => {
       Order.belongsTo(models.Coupon, { foreignKey: 'coupon_id', as: 'discountCoupon', onUpdate: 'SET NULL', onDelete: 'SET NULL'  });
       Order.hasMany(models.OrderItem, { foreignKey: 'order_id', as: 'orderItems', onDelete: 'SET NULL' });
    
+      //ADDED
+      // Order.hasMany(models.Address, { as: 'addresses', foreignKey: 'order_id' }); 
+
 
     }
   }
@@ -80,7 +83,7 @@ module.exports = (sequelize, DataTypes) => {
     status: {
       type: DataTypes.STRING,
       validate: {
-        isIn: [['pending', 'processing', 'shipped', 'out of delivery', 'delivered', 'cancelled','order placed']]
+        isIn: [['pending', 'processing', 'shipped', 'out of delivery', 'delivered', 'cancelled','placed']]
     }
     },
     deletedAt: {
