@@ -89,4 +89,52 @@ const vendorLogin = async (req, res) => {
     }
   };
   
-module.exports = { userLogin ,vendorLogin,adminLogin};
+  const userRegister = async (req, res) => {
+    const { first_name, last_name, email, phone_no,  } = req.body;
+  
+    try {
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email is already in use" });
+      }
+  
+  
+      const newUser = await User.create({
+        first_name: first_name,
+        last_name: last_name,
+        email,
+        phone_no: phone_no,
+      });
+  
+      const authority = "user";
+      const token = generateToken(newUser.user_id, newUser.first_name, newUser.email, authority);
+  
+      res.status(201).json({ message: "User registered successfully", user: newUser, token });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+
+  const getUserProfile = async (req, res) => {
+    try {
+      const userId = req.decodedToken.user_id;
+      
+      const user = await User.findOne({ where: { user_id: userId } });
+
+      if (user) {  
+        res.status(200).json({
+          message: "User profile retrieved successfully",
+          user: user,
+        });
+      } else {
+        res.status(404).json({ message: "User  not found" });
+      }
+  
+      res.status(200).json({ user });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+module.exports = { userLogin ,vendorLogin,adminLogin,userRegister,getUserProfile};

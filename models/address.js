@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
         as: 'city'
 
       });
+    
     }
   }
 

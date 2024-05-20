@@ -8,6 +8,7 @@ const {
   Cart,
   Address,
   State,
+  City,
 } = require("../models");
 
 const { sendEmail } = require("../helpers/emailHelper");
@@ -79,8 +80,12 @@ const createOrderItems = async (cartItems, orderId, cgst, sgst, igst) => {
   return orderItems;
 };
 
-const sendOrderEmails = async ( orderItems,customerDetails, newOrder, totalAmount) => {
-
+const sendOrderEmails = async (
+  orderItems,
+  customerDetails,
+  newOrder,
+  totalAmount
+) => {
   const detailedOrderItems = await Promise.all(
     orderItems.map(async (item) => {
       const product = await Product.findByPk(item.product_id, {
@@ -98,10 +103,10 @@ const sendOrderEmails = async ( orderItems,customerDetails, newOrder, totalAmoun
       }
       return {
         ...item,
-      product_name: product.product_name,
-      mrp: product.mrp, 
-      size: product.size, 
-      vendor: product.vendor,
+        product_name: product.product_name,
+        mrp: product.mrp,
+        size: product.size,
+        vendor: product.vendor,
       };
     })
   );
@@ -247,7 +252,9 @@ const sendOrderEmails = async ( orderItems,customerDetails, newOrder, totalAmoun
             Total Amount: ${totalAmount}<br>
             <h4>Order Items:</h4>
         <ul>
-        ${detailedOrderItems.map((item) => `
+        ${detailedOrderItems
+          .map(
+            (item) => `
         <li>
             <h4>${item.product_name}</h4>
             <p>Quantity: ${item.quantity}</p>
@@ -467,7 +474,6 @@ const getOrderDetailsByUserId = async (req, res) => {
 
 const getDetailedOrderDetails = async (req, res) => {
   const { user_id, order_id } = req.params;
-  console.log(user_id, " ", order_id);
 
   try {
     const order = await Order.findOne({
@@ -512,4 +518,156 @@ const getDetailedOrderDetails = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve order details" });
   }
 };
-module.exports = { addOrder, getOrderDetailsByUserId, getDetailedOrderDetails };
+const getBasicOrderDetailsForAdmin = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      attributes: [
+        "order_id",
+        "order_date",
+        "status",
+        "total_amount",
+        [
+          Sequelize.literal(
+            '(SELECT COUNT(*) FROM "OrderItems" WHERE "OrderItems"."order_id" = "Order"."order_id")'
+          ),
+          "total_products",
+        ],
+      ],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["user_id", "first_name", "last_name"],
+        },
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: [],
+        },
+      ],
+      group: ["Order.order_id", "user.user_id"],
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: "No orders found" });
+    }
+
+    res.status(200).json({
+      message: "Basic order details retrieved successfully",
+      orders,
+    });
+  } catch (error) {
+    console.error("Error retrieving basic order details:", error);
+    res.status(500).json({ message: "Failed to retrieve basic order details" });
+  }
+};
+
+const getAdminDetailedOrderDetails = async (req, res) => {
+  const { order_id } = req.params;
+
+  try {
+    const order = await Order.findOne({
+      where: { order_id },
+      attributes: ["order_id", "order_date", "status", "total_amount"],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_no",
+          ],
+        },
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: [
+            "product_id",
+            "quantity",
+            "unit_price",
+            "cgst",
+            "sgst",
+            "igst",
+            "sub_total",
+            "total_price",
+          ],
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: [
+                "product_name",
+                "p_images",
+                "main_description",
+                "mrp",
+                "selling_price",
+                "stock_quantity",
+                "size",
+              ],
+              include: [
+                {
+                  model: Vendor,
+                  as: "vendor",
+                  attributes: ["vendor_id", "first_name", "last_name"],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: Address,
+          as: "address",
+          attributes: [
+            "address_id",
+            "user_id",
+            "first_name",
+            "last_name",
+            "phone_no",
+            "street_address",
+            "city_id",
+            "state_id",
+            "pincode",
+            "address_type",
+          ],
+          include: [
+            {
+              model: City,
+              as: "city",
+              attributes: ["city_name"],
+            },
+            {
+              model: State,
+              as: "state",
+              attributes: ["state_name"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({
+      message: "Detailed order details retrieved successfully",
+      order: order
+    });
+  } catch (error) {
+    console.error("Error retrieving detailed order details:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve detailed order details" });
+  }
+};
+
+module.exports = {
+  addOrder,
+  getOrderDetailsByUserId,
+  getDetailedOrderDetails,
+  getBasicOrderDetailsForAdmin,
+  getAdminDetailedOrderDetails,
+};
