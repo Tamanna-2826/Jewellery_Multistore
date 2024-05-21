@@ -1,5 +1,6 @@
 const { Cart, CartItem, User, Product } = require('../models');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 const createCheckoutSession = async (req, res) => {
   try {
     const { cart_id, currency } = req.body;
@@ -25,16 +26,28 @@ const createCheckoutSession = async (req, res) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    const origin = req.headers.origin || 'http://localhost:4000'; // Default to localhost if origin is undefined
+    const origin = req.headers.origin || 'http://localhost:4000'; 
 
     const lineItems = cart.cartItems.map((item) => ({
       price_data: {
         currency,
         product_data: {
-          name: item.product.name,
-          images: [item.product.image],
+          name: item.product.product_name,
+          images: item.product.p_images || [],
+          description: item.product.main_description,
+          metadata: {
+            clasp_type: item.product.clasp_type,
+            gem_type: item.product.gem_type,
+            gem_color: item.product.gem_color,
+            occasion_type: item.product.occasion_type,
+            size: item.product.size,
+            weight: item.product.weight,
+            gold_type: item.product.gold_type,
+            no_of_gems: item.product.no_of_gems,
+            purity: item.product.purity,
+          }
         },
-        unit_amount: item.price * 100,
+        unit_amount: Math.round(item.price * 100), // Stripe requires amount in cents
       },
       quantity: item.quantity,
     }));
