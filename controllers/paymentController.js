@@ -1,82 +1,341 @@
-const { Cart, CartItem, User, Product } = require('../models');
+// const stripe = require("../config/stripe");
+// const cloudinaryBaseUrl =
+//   "https://res.cloudinary.com/dyjgvi4ma/image/upload/t_fixed_scale/";
+
+// const createCheckoutSession = async (req, res) => {
+//   const { cart_items, currency, user_id } = req.body;
+
+//   try {
+//     // const totalAmount = parseFloat(cart_items[0].total);
+//     // const amountInPaise = Math.round(totalAmount * 100);
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: cart_items.map((item) => ({
+//         price_data: {
+//           currency,
+//           product_data: {
+//             name: item.product.product_name,
+//             images: `[${cloudinaryBaseUrl}${item.product.p_images[0]}]`,
+//           },
+//           unit_amount: parseFloat(item.subTotal) * 100,
+//         },
+//         quantity: item.quantity,
+//       })),
+//       mode: "payment",
+//       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
+//       cancel_url: `${req.headers.origin}/cancel`,
+//     });
+
+//     res.status(200).json({ id: session.id });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// module.exports = {
+//   createCheckoutSession,
+// };
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { Order, OrderItem, Payment, Product,CartItem,Cart } = require('../models');
+const Sequelize = require("sequelize");
+const sequelizeConfig = require("./config/config.js");
+
+
+const sequelize = new Sequelize(sequelizeConfig.development);
+
+const generateOrderTrackingId = () => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let trackingId = '';
+  for (let i = 0; i < 3; i++) {
+    trackingId += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  for (let i = 0; i < 9; i++) {
+    trackingId += Math.floor(Math.random() * 10);
+  }
+  return trackingId;
+};
+
+
+
+const CGST_RATE = 1.5; // 9%
+const SGST_RATE = 1.5; // 9%
+const IGST_RATE = 3; // 18%
+
+// const createOrderAndPaymentRecords = async (session, user_id, shippingAddress) => {
+//   const { amount_total, currency, payment_status, customer_details, metadata } = session;
+
+//   try {
+//     await sequelize.transaction(async (t) => {
+//       // Calculate GST and other amounts
+//       const totalAmount = amount_total / 100; // Stripe amount is in cents
+//       const gstAmount = totalAmount * IGST_RATE;
+//       const subTotal = totalAmount - gstAmount;
+
+//       // Create the order
+//       const order = await Order.create(
+//         {
+//           order_id: metadata.order_id,
+//           user_id,
+//           order_date: new Date(),
+//           cgst: gstAmount / 2,
+//           sgst: gstAmount / 2,
+//           igst: gstAmount,
+//           subtotal: subTotal,
+//           shipping_charges: metadata.shipping_charges,
+//           coupon_id: metadata.coupon_id,
+//           discount_value: metadata.discount_value,
+//           discounted_amount: metadata.discounted_amount,
+//           total_amount: totalAmount,
+//           address_id: shippingAddress.address_id,
+//           status: 'placed',
+//         },
+//         { transaction: t }
+//       );
+
+//       // Create order items
+//       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
+//       for (let item of lineItems.data) {
+//         const itemTotal = item.amount_total / 100;
+//         const itemGST = itemTotal * IGST_RATE;
+//         const itemSubTotal = itemTotal - itemGST;
+
+//         await OrderItem.create(
+//           {
+//             order_id: order.order_id,
+//             product_id: item.price.product,
+//             quantity: item.quantity,
+//             unit_price: item.price.unit_amount / 100,
+//             cgst: itemGST / 2,
+//             sgst: itemGST / 2,
+//             igst: itemGST,
+//             sub_total: itemSubTotal,
+//             total_price: itemTotal,
+//           },
+//           { transaction: t }
+//         );
+//       }
+
+//       // Create the payment record
+//       await Payment.create(
+//         {
+//           order_id: order.order_id,
+//           amount: totalAmount,
+//           currency: currency,
+//           status: payment_status,
+//           paymentMethod: 'stripe',
+//         },
+//         { transaction: t }
+//       );
+//     });
+//   } catch (error) {
+//     console.error('Error creating order and payment records:', error);
+//     throw error;
+//   }
+// };
 
 const createCheckoutSession = async (req, res) => {
+  const { metadata } = req.body;
+  const { user_id } = req.user;
+
   try {
-    const { cart_id, currency } = req.body;
+    const shippingAddress = await Address.findOne({
+      where: {
+        user_id,
+        address_type: 'shipping',
+      },
+      include: [
+        {
+          model: State,
+          as: 'state',
+          attributes: ['state_name'],
+        },
+      ],
+    });
+
+    if (!shippingAddress) {
+      throw new Error('Shipping address not found');
+    }
+
     const cart = await Cart.findOne({
-      where: { cart_id },
+      where: { user_id },
       include: [
         {
           model: CartItem,
           as: 'cartItems',
-          include: [{ model: Product, as: 'product' }]
-        }
-      ]
+          attributes: ['product_id', 'quantity', 'price', 'size'],
+          include: [
+            {
+              model: Product,
+              as: 'product',
+              attributes: ['product_name', 'selling_price', 'p_images'],
+            },
+          ],
+        },
+      ],
     });
-
-    if (!cart) {
-      return res.status(404).json({ error: 'Cart not found' });
-    }
-
-    const totalAmount = cart.cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const customer = await User.findOne({ where: { user_id: cart.user_id } });
-
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found' });
-    }
-
-    const origin = req.headers.origin || 'http://localhost:4000'; 
 
     const lineItems = cart.cartItems.map((item) => ({
       price_data: {
-        currency,
+        currency: 'INR',
         product_data: {
           name: item.product.product_name,
-          images: item.product.p_images || [],
-          description: item.product.main_description,
-          metadata: {
-            clasp_type: item.product.clasp_type,
-            gem_type: item.product.gem_type,
-            gem_color: item.product.gem_color,
-            occasion_type: item.product.occasion_type,
-            size: item.product.size,
-            weight: item.product.weight,
-            gold_type: item.product.gold_type,
-            no_of_gems: item.product.no_of_gems,
-            purity: item.product.purity,
-          }
+          images: item.product.p_images, // Include product images
         },
-        unit_amount: Math.round(item.price * 100), // Stripe requires amount in cents
+        unit_amount: item.product.selling_price * 100,
       },
       quantity: item.quantity,
     }));
-
-    if (lineItems.length === 0) {
-      return res.status(400).json({ error: 'No items in cart' });
-    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cancel`,
-      customer_email: customer.email,
-      client_reference_id: customer.user_id.toString(),
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
+      cancel_url: `${req.headers.origin}/cancel`,
       metadata: {
-        customer_id: customer.user_id.toString(),
-        cart_id: cart.cart_id.toString()
+        order_id: generateOrderTrackingId(), // Generate unique order_id
+        user_id,
+        shipping_charges: metadata.shipping_charges,
+        coupon_id: metadata.coupon_id,
+        discount_value: metadata.discount_value,
+        discounted_amount: metadata.discounted_amount,
+        address_id: shippingAddress.address_id,
       },
     });
-
-    res.json({ sessionId: session.id });
+    res.status(200).send({ sessionId: session.id });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    console.error('Error creating checkout session:', error);
+    res.status(500).send({ error: error.message });
   }
 };
 
+const handleStripeWebhook = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.log(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const user_id = session.metadata.user_id;
+
+    const shippingAddress = await Address.findOne({
+      where: {
+        user_id,
+        address_type: 'shipping',
+      },
+      include: [
+        {
+          model: State,
+          as: 'state',
+          attributes: ['state_name'],
+        },
+      ],
+    });
+
+    if (!shippingAddress) {
+      console.error('Shipping address not found');
+      return res.status(400).send('Shipping address not found');
+    }
+
+    const cart = await Cart.findOne({
+      where: { user_id },
+      include: [
+        {
+          model: CartItem,
+          as: 'cartItems',
+          attributes: ['product_id', 'quantity', 'price', 'size'],
+          include: [
+            {
+              model: Product,
+              as: 'product',
+              attributes: ['product_name', 'selling_price', 'p_images'],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!cart || cart.cartItems.length === 0) {
+      console.error('Cart is empty');
+      return res.status(400).send('Cart is empty');
+    }
+
+    const cartItems = cart.cartItems;
+
+    // Calculate GST and other amounts
+    const totalAmount = session.amount_total / 100;
+    const gstAmount = totalAmount * IGST_RATE;
+    const subTotal = totalAmount - gstAmount;
+
+    // Create the order
+    const order = await Order.create({
+      order_id: generateOrderTrackingId(), // Generate unique order_id
+      user_id,
+      order_date: new Date(),
+      cgst: gstAmount / 2,
+      sgst: gstAmount / 2,
+      igst: gstAmount,
+      subtotal: subTotal,
+      shipping_charges: session.metadata.shipping_charges,
+      coupon_id: session.metadata.coupon_id,
+      discount_value: session.metadata.discount_value,
+      discounted_amount: session.metadata.discounted_amount,
+      total_amount: totalAmount,
+      address_id: shippingAddress.address_id,
+      status: 'placed',
+    });
+
+    // Create order items
+    for (const cartItem of cartItems) {
+      const itemTotal = cartItem.price * cartItem.quantity;
+      const itemGST = itemTotal * IGST_RATE;
+      const itemSubTotal = itemTotal - itemGST;
+
+      await OrderItem.create({
+        order_id: order.order_id,
+        product_id: cartItem.product_id,
+        quantity: cartItem.quantity,
+        unit_price: cartItem.price,
+        cgst: itemGST / 2,
+        sgst: itemGST / 2,
+        igst: itemGST,
+        sub_total: itemSubTotal,
+        total_price: itemTotal,
+        product_name: cartItem.product.product_name, // Add product_name from cartItem
+        product_image: cartItem.product.p_images[0], // Add product_image from cartItem
+      });
+    }
+
+    // Create the payment record
+    await Payment.create({
+      order_id: order.order_id,
+      amount: totalAmount,
+      currency: session.currency,
+      status: session.payment_status,
+      paymentMethod: 'stripe',
+    });
+
+    // Clear the cart
+    await CartItem.destroy({
+      where: { cart_id: cart.cart_id },
+      force: false,
+    });
+  }
+
+  // Return a response to acknowledge receipt of the event
+  res.json({ received: true });
+};
+
 module.exports = {
-  createCheckoutSession
+  createCheckoutSession,
+  handleStripeWebhook,
 };
