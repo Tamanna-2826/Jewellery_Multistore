@@ -57,13 +57,13 @@ const addToCart = async (req, res) => {
 
     if (cartItem) {
       const updatedQuantity = cartItem.quantity + quantity;
-      const updatedSubTotal = (updatedQuantity * price).toFixed(2); 
+      const updatedSubTotal = (updatedQuantity * price).toFixed(2);
       await cartItem.update({
         quantity: updatedQuantity,
         subTotal: updatedSubTotal,
       });
     } else {
-      const subTotal = (quantity * price).toFixed(2); 
+      const subTotal = (quantity * price).toFixed(2);
 
       cartItem = await CartItem.create({
         cart_id: cart.cart_id,
@@ -79,7 +79,6 @@ const addToCart = async (req, res) => {
       where: { cart_id: cart.cart_id },
     });
     let total = 0;
-    let totalGST = 0;
     for (const item of userCartItems) {
       const subtotal = parseFloat(item.subTotal);
       if (!isNaN(subtotal)) {
@@ -87,17 +86,13 @@ const addToCart = async (req, res) => {
         // totalGST += subtotal * 0.03;
       }
     }
-    total = total.toFixed(2);
-    totalGST = total * 0.03; // Calculate 3% GST on the total
-    const grandTotal = (parseFloat(total) + parseFloat(totalGST)).toFixed(2);
+ 
 
     await CartItem.update({ total }, { where: { cart_id: cart.cart_id } });
     return res.status(200).json({
       message: "Item added to cart successfully",
       cartItem,
-      total,
-      totalGST,
-      grandTotal,
+      total
     });
   } catch (error) {
     console.error("Error adding item to cart:", error);
@@ -155,9 +150,25 @@ const getCartItemsByUserId = async (req, res) => {
       ],
       paranoid: true,
     });
+    let total = 0;
+    let totalGST = 0;
+
+    for (const item of cartItems) {
+      const subtotal = parseFloat(item.subTotal);
+      if (!isNaN(subtotal)) {
+        total += subtotal;
+      }
+    }
+
+    total = total.toFixed(2);
+    totalGST = (total * 0.03).toFixed(2); 
+    const grandTotal = (parseFloat(total) + parseFloat(totalGST)).toFixed(2);
 
     return res.status(200).json({
       cartItems,
+      total,
+      totalGST,
+      grandTotal,
     });
   } catch (error) {
     console.error("Error fetching cart items:", error);
