@@ -12,16 +12,15 @@ const addToCart = async (req, res) => {
   const { user_id, product_id, quantity, price, size } = req.body;
 
   try {
-    const product = await Product.findByPk(product_id,
-      {     
-       include: [
-        { 
-          model: Category, 
-          as: 'category', 
-          attributes: ['category_name'] 
-        }
-      ]
-  });
+    const product = await Product.findByPk(product_id, {
+      include: [
+        {
+          model: Category,
+          as: "category",
+          attributes: ["category_name"],
+        },
+      ],
+    });
     const user = await User.findByPk(user_id);
 
     if (!product || !user) {
@@ -34,11 +33,15 @@ const addToCart = async (req, res) => {
 
     const category = product.category;
 
-    if ((category.category_name === "Bangles" || category.category_name === "Ring") && (!size || size.trim() === "")) {
-      return res.status(400).json({ error: "Size is required for bangles and rings" });
+    if (
+      (category.category_name === "Bangles" ||
+        category.category_name === "Ring") &&
+      (!size || size.trim() === "")
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Size is required for bangles and rings" });
     }
-
-    const subtotal = quantity * price;
 
     let cart = await Cart.findOne({ where: { user_id } });
     if (!cart) {
@@ -54,19 +57,21 @@ const addToCart = async (req, res) => {
 
     if (cartItem) {
       const updatedQuantity = cartItem.quantity + quantity;
-      const updatedSubTotal = updatedQuantity * price;
+      const updatedSubTotal = (updatedQuantity * price).toFixed(2); 
       await cartItem.update({
         quantity: updatedQuantity,
         subTotal: updatedSubTotal,
       });
     } else {
+      const subTotal = (quantity * price).toFixed(2); 
+
       cartItem = await CartItem.create({
         cart_id: cart.cart_id,
         product_id,
         size,
         quantity,
         price,
-        subTotal: subtotal,
+        subTotal,
       });
     }
 
@@ -74,17 +79,25 @@ const addToCart = async (req, res) => {
       where: { cart_id: cart.cart_id },
     });
     let total = 0;
+    let totalGST = 0;
     for (const item of userCartItems) {
       const subtotal = parseFloat(item.subTotal);
       if (!isNaN(subtotal)) {
         total += subtotal;
+        // totalGST += subtotal * 0.03;
       }
     }
+    total = total.toFixed(2);
+    totalGST = total * 0.03; // Calculate 3% GST on the total
+    const grandTotal = (parseFloat(total) + parseFloat(totalGST)).toFixed(2);
+
     await CartItem.update({ total }, { where: { cart_id: cart.cart_id } });
     return res.status(200).json({
       message: "Item added to cart successfully",
       cartItem,
       total,
+      totalGST,
+      grandTotal,
     });
   } catch (error) {
     console.error("Error adding item to cart:", error);
@@ -166,7 +179,7 @@ const moveProductToWishlist = async (req, res) => {
     }
 
     const existingWishlistItem = await WishlistItem.findOne({
-      where: { product_id: cartItem.product_id},
+      where: { product_id: cartItem.product_id },
     });
 
     if (existingWishlistItem) {
@@ -178,9 +191,9 @@ const moveProductToWishlist = async (req, res) => {
       });
     }
 
-    let wishlist = await Wishlist.findOne({ where: { user_id} });
+    let wishlist = await Wishlist.findOne({ where: { user_id } });
     if (!wishlist) {
-      wishlist = await Wishlist.create({ user_id});
+      wishlist = await Wishlist.create({ user_id });
     }
 
     const wishlistItem = await WishlistItem.create({

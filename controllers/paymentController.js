@@ -38,9 +38,9 @@
 // };
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Order, OrderItem, Payment, Product,CartItem,Cart } = require('../models');
+const { Order, OrderItem, Payment, Product,CartItem,Cart,Address,State,City } = require('../models');
 const Sequelize = require("sequelize");
-const sequelizeConfig = require("./config/config.js");
+const sequelizeConfig = require("../config/config.js");
 
 
 const sequelize = new Sequelize(sequelizeConfig.development);
@@ -57,87 +57,14 @@ const generateOrderTrackingId = () => {
   return trackingId;
 };
 
-
-
 const CGST_RATE = 1.5; // 9%
 const SGST_RATE = 1.5; // 9%
 const IGST_RATE = 3; // 18%
 
-// const createOrderAndPaymentRecords = async (session, user_id, shippingAddress) => {
-//   const { amount_total, currency, payment_status, customer_details, metadata } = session;
-
-//   try {
-//     await sequelize.transaction(async (t) => {
-//       // Calculate GST and other amounts
-//       const totalAmount = amount_total / 100; // Stripe amount is in cents
-//       const gstAmount = totalAmount * IGST_RATE;
-//       const subTotal = totalAmount - gstAmount;
-
-//       // Create the order
-//       const order = await Order.create(
-//         {
-//           order_id: metadata.order_id,
-//           user_id,
-//           order_date: new Date(),
-//           cgst: gstAmount / 2,
-//           sgst: gstAmount / 2,
-//           igst: gstAmount,
-//           subtotal: subTotal,
-//           shipping_charges: metadata.shipping_charges,
-//           coupon_id: metadata.coupon_id,
-//           discount_value: metadata.discount_value,
-//           discounted_amount: metadata.discounted_amount,
-//           total_amount: totalAmount,
-//           address_id: shippingAddress.address_id,
-//           status: 'placed',
-//         },
-//         { transaction: t }
-//       );
-
-//       // Create order items
-//       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
-//       for (let item of lineItems.data) {
-//         const itemTotal = item.amount_total / 100;
-//         const itemGST = itemTotal * IGST_RATE;
-//         const itemSubTotal = itemTotal - itemGST;
-
-//         await OrderItem.create(
-//           {
-//             order_id: order.order_id,
-//             product_id: item.price.product,
-//             quantity: item.quantity,
-//             unit_price: item.price.unit_amount / 100,
-//             cgst: itemGST / 2,
-//             sgst: itemGST / 2,
-//             igst: itemGST,
-//             sub_total: itemSubTotal,
-//             total_price: itemTotal,
-//           },
-//           { transaction: t }
-//         );
-//       }
-
-//       // Create the payment record
-//       await Payment.create(
-//         {
-//           order_id: order.order_id,
-//           amount: totalAmount,
-//           currency: currency,
-//           status: payment_status,
-//           paymentMethod: 'stripe',
-//         },
-//         { transaction: t }
-//       );
-//     });
-//   } catch (error) {
-//     console.error('Error creating order and payment records:', error);
-//     throw error;
-//   }
-// };
-
 const createCheckoutSession = async (req, res) => {
   const { metadata } = req.body;
-  const { user_id } = req.user;
+  const { user_id } = req.body;
+  // const { user_id } = req.decodedToken;
 
   try {
     const shippingAddress = await Address.findOne({
@@ -188,12 +115,14 @@ const createCheckoutSession = async (req, res) => {
       quantity: item.quantity,
     }));
 
+    const origin = req.headers.origin || 'http://localhost:4000'; // Default to localhost if origin is undefined
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
-      cancel_url: `${req.headers.origin}/cancel`,
+      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
+      cancel_url: `${origin}/cancel`,
       metadata: {
         order_id: generateOrderTrackingId(), // Generate unique order_id
         user_id,

@@ -33,6 +33,7 @@ const jwtMiddleware = (req, res, next) => {
         return res.status(401).json({ message: 'Unauthorized - Invalid token' });
       }
       req.decodedToken = decoded; 
+
       next(); 
     });
   } catch (error) {
