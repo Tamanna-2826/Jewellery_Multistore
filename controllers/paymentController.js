@@ -37,19 +37,30 @@
 //   createCheckoutSession,
 // };
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Order, OrderItem, Payment, Product,CartItem,Cart,Address,State,City } = require('../models');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const {
+  Order,
+  OrderItem,
+  Payment,
+  Product,
+  CartItem,
+  Cart,
+  Address,
+  State,
+  City,
+} = require("../models");
 const Sequelize = require("sequelize");
 const sequelizeConfig = require("../config/config.js");
-
 
 const sequelize = new Sequelize(sequelizeConfig.development);
 
 const generateOrderTrackingId = () => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let trackingId = '';
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let trackingId = "";
   for (let i = 0; i < 3; i++) {
-    trackingId += characters.charAt(Math.floor(Math.random() * characters.length));
+    trackingId += characters.charAt(
+      Math.floor(Math.random() * characters.length)
+    );
   }
   for (let i = 0; i < 9; i++) {
     trackingId += Math.floor(Math.random() * 10);
@@ -70,19 +81,19 @@ const createCheckoutSession = async (req, res) => {
     const shippingAddress = await Address.findOne({
       where: {
         user_id,
-        address_type: 'shipping',
+        address_type: "shipping",
       },
       include: [
         {
           model: State,
-          as: 'state',
-          attributes: ['state_name'],
+          as: "state",
+          attributes: ["state_name"],
         },
       ],
     });
 
     if (!shippingAddress) {
-      throw new Error('Shipping address not found');
+      throw new Error("Shipping address not found");
     }
 
     const cart = await Cart.findOne({
@@ -90,13 +101,13 @@ const createCheckoutSession = async (req, res) => {
       include: [
         {
           model: CartItem,
-          as: 'cartItems',
-          attributes: ['product_id', 'quantity', 'price', 'size'],
+          as: "cartItems",
+          attributes: ["product_id", "quantity", "price", "size"],
           include: [
             {
               model: Product,
-              as: 'product',
-              attributes: ['product_name', 'selling_price', 'p_images'],
+              as: "product",
+              attributes: ["product_name", "selling_price", "p_images"],
             },
           ],
         },
@@ -105,7 +116,7 @@ const createCheckoutSession = async (req, res) => {
 
     const lineItems = cart.cartItems.map((item) => ({
       price_data: {
-        currency: 'INR',
+        currency: "INR",
         product_data: {
           name: item.product.product_name,
           images: item.product.p_images, // Include product images
@@ -115,67 +126,86 @@ const createCheckoutSession = async (req, res) => {
       quantity: item.quantity,
     }));
 
-    const origin = req.headers.origin || 'http://localhost:4000'; // Default to localhost if origin is undefined
+    const origin = req.headers.origin || "http://localhost:4000"; // Default to localhost if origin is undefined
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ["card"],
       line_items: lineItems,
-      mode: 'payment',
+      mode: "payment",
       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
       cancel_url: `${origin}/cancel`,
       metadata: {
         order_id: generateOrderTrackingId(), // Generate unique order_id
         user_id,
         // shipping_charges: 0,
-        coupon_id: metadata.coupon_id,
-        discount_value: metadata.discount_value,
-        discounted_amount: metadata.discounted_amount,
+        // coupon_id: metadata.coupon_id,
+        // discount_value: metadata.discount_value,
+        // discounted_amount: metadata.discounted_amount,
         address_id: shippingAddress.address_id,
       },
     });
     res.status(200).send({ sessionId: session.id });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error("Error creating checkout session:", error);
     res.status(500).send({ error: error.message });
   }
 };
 
 const handleStripeWebhook = async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    console.log('Webhook received:', event);  // Log received event
+    console.log("Request Headers:", req.headers);
+    console.log("Stripe-Signature Header:", req.headers["stripe-signature"]);
+    console.log("Stripe-Signature-Version Header:",req.headers["stripe-signature-version"]
+    );
+    console.log("Body : ", req.body);
+
+    if (!req.body) {
+      console.error("Request body is undefined or empty");
+    } else {
+      const bodyString = JSON.stringify(req.body);
+      console.log("Body Length:", bodyString.length);
+      // console.log("Body (first 100 characters):", bodyString.slice(0, 100));
+    }
+    console.log("Raw Request Body:", req.rawBody); // Add this line
+
+    event = stripe.webhooks.constructEvent(
+      JSON.stringify(req.body),
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+    console.log("EVENT : ", event);
   } catch (err) {
     console.log(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === 'checkout.session.completed') {
+  if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    console.log('Session metadata:', session.metadata);  // Log session metadata
+    console.log("Session metadata:", session.metadata); // Log session metadata
     const user_id = session.metadata.user_id;
 
     try {
       const shippingAddress = await Address.findOne({
         where: {
           user_id,
-          address_type: 'shipping',
+          address_type: "shipping",
         },
         include: [
           {
             model: State,
-            as: 'state',
-            attributes: ['state_name'],
+            as: "state",
+            attributes: ["state_name"],
           },
         ],
       });
-      console.log('Shipping address:', shippingAddress);  // Log shipping address
+      console.log("Shipping address:", shippingAddress); // Log shipping address
 
       if (!shippingAddress) {
-        console.error('Shipping address not found');
-        return res.status(400).send('Shipping address not found');
+        console.error("Shipping address not found");
+        return res.status(400).send("Shipping address not found");
       }
 
       const cart = await Cart.findOne({
@@ -183,23 +213,23 @@ const handleStripeWebhook = async (req, res) => {
         include: [
           {
             model: CartItem,
-            as: 'cartItems',
-            attributes: ['product_id', 'quantity', 'price', 'size'],
+            as: "cartItems",
+            attributes: ["product_id", "quantity", "price", "size"],
             include: [
               {
                 model: Product,
-                as: 'product',
-                attributes: ['product_name', 'selling_price', 'p_images'],
+                as: "product",
+                attributes: ["product_name", "selling_price", "p_images"],
               },
             ],
           },
         ],
       });
-      console.log('Cart:', cart);  // Log cart
+      console.log("Cart:", cart); // Log cart
 
       if (!cart || cart.cartItems.length === 0) {
-        console.error('Cart is empty');
-        return res.status(400).send('Cart is empty');
+        console.error("Cart is empty");
+        return res.status(400).send("Cart is empty");
       }
 
       const cartItems = cart.cartItems;
@@ -218,14 +248,14 @@ const handleStripeWebhook = async (req, res) => {
         igst: gstAmount,
         subtotal: subTotal,
         // shipping_charges: session.metadata.shipping_charges,
-        coupon_id: session.metadata.coupon_id,
-        discount_value: session.metadata.discount_value,
-        discounted_amount: session.metadata.discounted_amount,
+        // coupon_id: session.metadata.coupon_id,
+        // discount_value: session.metadata.discount_value,
+        // discounted_amount: session.metadata.discounted_amount,
         total_amount: totalAmount,
         address_id: shippingAddress.address_id,
-        status: 'placed',
+        status: "placed",
       });
-      console.log('Order created:', order);  // Log order creation
+      console.log("Order created:", order); // Log order creation
 
       for (const cartItem of cartItems) {
         const itemTotal = cartItem.price * cartItem.quantity;
@@ -246,31 +276,30 @@ const handleStripeWebhook = async (req, res) => {
           product_image: cartItem.product.p_images[0],
         });
       }
-      console.log('Order items created');  // Log order items creation
+      console.log("Order items created"); // Log order items creation
 
       await Payment.create({
         order_id: order.order_id,
         amount: totalAmount,
         currency: session.currency,
         status: session.payment_status,
-        paymentMethod: 'stripe',
+        paymentMethod: "stripe",
       });
-      console.log('Payment record created');  // Log payment creation
+      console.log("Payment record created"); // Log payment creation
 
       await CartItem.destroy({
         where: { cart_id: cart.cart_id },
         force: false,
       });
-      console.log('Cart cleared');  // Log cart clearance
+      console.log("Cart cleared"); // Log cart clearance
     } catch (error) {
-      console.error('Error processing webhook:', error);
-      return res.status(500).send('Internal Server Error');
+      console.error("Error processing webhook:", error);
+      return res.status(500).send("Internal Server Error");
     }
   }
 
   res.json({ received: true });
 };
-
 
 module.exports = {
   createCheckoutSession,

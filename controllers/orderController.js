@@ -708,6 +708,12 @@ const getPendingOrdersForVendor = async (req, res) => {
 
   try {
     const orders = await Order.findAll({
+      attributes: [
+        "order_id",
+        "order_date",
+        "status",
+        "total_amount",
+      ],
       where: {
         status: "pending",
       },
@@ -716,16 +722,7 @@ const getPendingOrdersForVendor = async (req, res) => {
         {
           model: OrderItem,
           as: "orderItems",
-          attributes: [
-            "product_id",
-            "quantity",
-            "unit_price",
-            "cgst",
-            "sgst",
-            "igst",
-            "sub_total",
-            "total_price",
-          ],
+          attributes: [],
           include: [
             {
               model: Product,
@@ -743,6 +740,11 @@ const getPendingOrdersForVendor = async (req, res) => {
               ],
             },
           ],
+        },
+        {
+          model: User,
+          as: "user",
+          attributes: ["user_id","first_name", "last_name"], 
         },
       ],
     });

@@ -3,8 +3,7 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 
 router.post('/create-checkout-session', paymentController.createCheckoutSession);
+router.post('/webhook', paymentController.handleStripeWebhook);
 
-// Route to handle Stripe webhook events
-router.post('/webhook', express.raw({ type: 'application/json' }), paymentController.handleStripeWebhook);
 
 module.exports = router;

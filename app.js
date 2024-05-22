@@ -1,4 +1,10 @@
 const express = require("express");
+const bodyParser = require("body-parser");
+const Sequelize = require("sequelize");
+const sequelizeConfig = require("./config/config.js");
+const sequelize = new Sequelize(sequelizeConfig.development);
+const cors = require("cors");
+
 const authRoutes = require("./routes/authRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
@@ -10,19 +16,12 @@ const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
-
-
-const Sequelize = require("sequelize");
-const sequelizeConfig = require("./config/config.js");
-const cors = require("cors");
-
-
-const sequelize = new Sequelize(sequelizeConfig.development);
-
 const app = express();
-
 app.use(cors()); 
 app.use(express.json());
+
+app.use('/payment/webhook', bodyParser.raw({ type: 'application/json' }));
+
 
 app.use('/auth', authRoutes);
 app.use('/location', locationRoutes);
