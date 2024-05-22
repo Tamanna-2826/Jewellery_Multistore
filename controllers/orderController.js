@@ -714,15 +714,18 @@ const getPendingOrdersForVendor = async (req, res) => {
         "status",
         "total_amount",
       ],
-      where: {
-        status: "pending",
-      },
+      // where: {
+      //   status: "pending",
+      // },
       order: [["order_date", "DESC"]],
       include: [
         {
           model: OrderItem,
           as: "orderItems",
           attributes: [],
+          where:{
+            vendor_status: "pending",
+          },
           include: [
             {
               model: Product,

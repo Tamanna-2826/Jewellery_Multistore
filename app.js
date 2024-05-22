@@ -22,21 +22,21 @@ app.use(express.json());
 
 app.use('/payment/webhook', bodyParser.raw({ type: 'application/json' }));
 
-
 app.use('/auth', authRoutes);
 app.use('/location', locationRoutes);
 app.use('/vendor', vendorRoutes);
-app.use('/categories',categoryRoutes);
-app.use('/products',productRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
 app.use('/cart', cartRoutes);
 app.use('/wishlist', wishlistRoutes);
 app.use('/address', addressRoutes);
 app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 
-
-sequelize.sync() .then(() => { 
-    console.log("Database synced");}).catch((error) => {
+sequelize.sync()
+  .then(() => { 
+    console.log("Database synced");
+  }).catch((error) => {
     console.error("Error syncing database:", error);
   });
 
