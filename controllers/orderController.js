@@ -717,7 +717,7 @@ const getPendingOrdersForVendor = async (req, res) => {
         {
           model: OrderItem,
           as: "orderItems",
-          attributes:[],
+          attributes:["orderItem_id"],
           where: {
             vendor_status: "pending",
           },

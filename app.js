@@ -17,10 +17,9 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
-app.use(cors()); 
-app.use(express.json());
 
-app.use('/payment/webhook', bodyParser.raw({ type: 'application/json' }));
+app.use(cors());
+app.use(express.json());
 
 app.use('/auth', authRoutes);
 app.use('/location', locationRoutes);
@@ -34,9 +33,10 @@ app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 
 sequelize.sync()
-  .then(() => { 
+  .then(() => {
     console.log("Database synced");
-  }).catch((error) => {
+  })
+  .catch((error) => {
     console.error("Error syncing database:", error);
   });
 

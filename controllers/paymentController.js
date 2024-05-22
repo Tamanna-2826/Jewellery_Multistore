@@ -50,6 +50,8 @@ const {
   City,
 } = require("../models");
 const Sequelize = require("sequelize");
+const concat = require('buffer-concat');
+
 const sequelizeConfig = require("../config/config.js");
 
 const sequelize = new Sequelize(sequelizeConfig.development);
@@ -151,32 +153,21 @@ const createCheckoutSession = async (req, res) => {
   }
 };
 
+
 const handleStripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
   try {
-    console.log("Request Headers:", req.headers);
-    console.log("Stripe-Signature Header:", req.headers["stripe-signature"]);
-    console.log("Raw Request Body:", req.body);
 
-    if (!req.body) {
-      console.error("Request body is undefined or empty");
-    } 
-    else 
-    {
-      const bodyString = JSON.stringify(req.body);
-      console.log("Body Length:", bodyString.length);
-    }
-    console.log("Raw Request Body:", req.rawBody); // Add this line
+    console.log("Request Body:",JSON.stringify(req.body));
+    console.log(" ");
 
-    event = stripe.webhooks.constructEvent(
-      req.body, // Raw body is used directly
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(JSON.stringify(req.body), sig, process.env.STRIPE_WEBHOOK_SECRET);
+
     console.log("EVENT : ", event);
-  } catch (err) {
+  } 
+  catch (err) {
     console.log(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
@@ -224,8 +215,7 @@ const handleStripeWebhook = async (req, res) => {
           },
         ],
       });
-      console.log("Cart:", cart); // Log cart
-
+      console.log("Cart:", cart); 
       if (!cart || cart.cartItems.length === 0) {
         console.error("Cart is empty");
         return res.status(400).send("Cart is empty");
