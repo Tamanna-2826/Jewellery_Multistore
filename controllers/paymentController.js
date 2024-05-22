@@ -70,14 +70,14 @@ const generateOrderTrackingId = () => {
   return trackingId;
 };
 
+
 const CGST_RATE = 1.5; // 9%
 const SGST_RATE = 1.5; // 9%
 const IGST_RATE = 3; // 18%
 
 const createCheckoutSession = async (req, res) => {
-  const { metadata } = req.body;
+  // const { metadata } = req.body;
   const { user_id } = req.body;
-  // const { user_id } = req.decodedToken;
 
   try {
     const shippingAddress = await Address.findOne({
@@ -121,14 +121,14 @@ const createCheckoutSession = async (req, res) => {
         currency: "INR",
         product_data: {
           name: item.product.product_name,
-          images: item.product.p_images, // Include product images
+          images: item.product.p_images,
         },
         unit_amount: item.product.selling_price * 100,
       },
       quantity: item.quantity,
     }));
 
-    const origin = req.headers.origin || "http://localhost:4000"; // Default to localhost if origin is undefined
+    const origin = req.headers.origin || "http://localhost:4000";
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -137,15 +137,12 @@ const createCheckoutSession = async (req, res) => {
       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
       cancel_url: `${origin}/cancel`,
       metadata: {
-        order_id: generateOrderTrackingId(), // Generate unique order_id
+        order_id: generateOrderTrackingId(),
         user_id,
-        // shipping_charges: 0,
-        // coupon_id: metadata.coupon_id,
-        // discount_value: metadata.discount_value,
-        // discounted_amount: metadata.discounted_amount,
         address_id: shippingAddress.address_id,
       },
     });
+
     res.status(200).send({ sessionId: session.id });
   } catch (error) {
     console.error("Error creating checkout session:", error);
@@ -159,23 +156,18 @@ const handleStripeWebhook = async (req, res) => {
   let event;
 
   try {
-
-    console.log("Request Body:",JSON.stringify(req.body));
-    console.log(" ");
-
-    event = stripe.webhooks.constructEvent(JSON.stringify(req.body), sig, process.env.STRIPE_WEBHOOK_SECRET);
-
-    console.log("EVENT : ", event);
-  } 
-  catch (err) {
-    console.log(`Webhook Error: ${err.message}`);
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.log(`⚠️  Webhook signature verification failed.`, err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     console.log("Session metadata:", session.metadata); // Log session metadata
-    const user_id = session.metadata.user_id;
+    // const user_id = session.metadata.user_id;
+    const { user_id, order_id } = session.metadata;
+
 
     try {
       const shippingAddress = await Address.findOne({
@@ -229,7 +221,7 @@ const handleStripeWebhook = async (req, res) => {
       const subTotal = totalAmount - gstAmount;
 
       const order = await Order.create({
-        order_id: generateOrderTrackingId(),
+        order_id,
         user_id,
         order_date: new Date(),
         cgst: gstAmount / 2,
@@ -289,6 +281,8 @@ const handleStripeWebhook = async (req, res) => {
 
   res.json({ received: true });
 };
+
+
 
 module.exports = {
   createCheckoutSession,

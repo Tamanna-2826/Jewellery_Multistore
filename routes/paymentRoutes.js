@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 
-
 const paymentController = require('../controllers/paymentController');
-// 
-router.post('/webhook', bodyParser.raw({type: 'application/json'}), paymentController.handleStripeWebhook);
+
+router.use(bodyParser.raw({ type: 'application/json', verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
+
+router.post('/webhook', paymentController.handleStripeWebhook);
 router.post('/create-checkout-session', paymentController.createCheckoutSession);
 
 
