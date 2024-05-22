@@ -702,11 +702,11 @@ const getAdminDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-
 const getPendingOrdersForVendor = async (req, res) => {
   const { vendor_id } = req.params;
 
   try {
+    // Find all orders with specific attributes and include associated models
     const orders = await Order.findAll({
       attributes: [
         "order_id",
@@ -714,25 +714,20 @@ const getPendingOrdersForVendor = async (req, res) => {
         "status",
         "total_amount",
       ],
-      // where: {
-      //   status: "pending",
-      // },
-      order: [["order_date", "DESC"]],
+      // Include OrderItems where vendor_status is pending
       include: [
         {
           model: OrderItem,
           as: "orderItems",
-          attributes: [],
-          where:{
+          where: {
             vendor_status: "pending",
           },
           include: [
             {
               model: Product,
               as: "product",
-              attributes: ["product_name", "mrp"],
               where: {
-                vendor_id,
+                vendor_id, // Filter products by the specific vendor
               },
               include: [
                 {
@@ -752,6 +747,7 @@ const getPendingOrdersForVendor = async (req, res) => {
       ],
     });
 
+    // Check if any orders were found
     if (orders.length === 0) {
       return res
         .status(404)

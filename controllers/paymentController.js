@@ -158,9 +158,7 @@ const handleStripeWebhook = async (req, res) => {
   try {
     console.log("Request Headers:", req.headers);
     console.log("Stripe-Signature Header:", req.headers["stripe-signature"]);
-    console.log("Stripe-Signature-Version Header:",req.headers["stripe-signature-version"]
-    );
-    console.log("Body : ", req.body);
+    console.log("Raw Request Body:", req.body); 
 
     if (!req.body) {
       console.error("Request body is undefined or empty");
