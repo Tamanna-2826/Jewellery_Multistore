@@ -158,19 +158,20 @@ const handleStripeWebhook = async (req, res) => {
   try {
     console.log("Request Headers:", req.headers);
     console.log("Stripe-Signature Header:", req.headers["stripe-signature"]);
-    console.log("Raw Request Body:", req.body); 
+    console.log("Raw Request Body:", req.body);
 
     if (!req.body) {
       console.error("Request body is undefined or empty");
-    } else {
+    } 
+    else 
+    {
       const bodyString = JSON.stringify(req.body);
       console.log("Body Length:", bodyString.length);
-      // console.log("Body (first 100 characters):", bodyString.slice(0, 100));
     }
     console.log("Raw Request Body:", req.rawBody); // Add this line
 
     event = stripe.webhooks.constructEvent(
-      JSON.stringify(req.body),
+      req.body, // Raw body is used directly
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
