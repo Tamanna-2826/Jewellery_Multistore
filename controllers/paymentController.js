@@ -153,23 +153,28 @@ const createCheckoutSession = async (req, res) => {
 };
 
 // const handleStripeWebhook = async (req, res) => {
-  router.post('/payment/webhook',express.json({ type: "application/json" }), async (req, res) => {
+  const handleStripeWebhook = async (req, res) => {
 
   const sig = req.headers["stripe-signature"];
   let event;
-  // console.log("req.body", req.body,);
-  // let webhookSecret = `${process.env.STRIPE_WEBHOOK_SECRET}`;
+  setTimeout(() => {
+    res.status(200).json({ received: true });
+  }, 10000);
 
     try {
+      const rawBody = await getRawBody(req);
+
       event = stripe.webhooks.constructEvent(
-        req.body,
+        rawBody,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET
       );
+      console.log("EVENT : ",event)
     } catch (err) {
-      console.log(`⚠️Webhook signature verification failed.`, err.message);
+      console.log(`Webhook signature verification failed.`, err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
+      
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -288,9 +293,21 @@ const createCheckoutSession = async (req, res) => {
     }
 
   res.json({ received: true });
-});
+};
+
+const getRawBody = (req) => {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      resolve(concat(chunks));
+    });
+  });
+};
 
 module.exports = {
-  createCheckoutSession
-  // handleStripeWebhook,
+  createCheckoutSession,
+  handleStripeWebhook
 };

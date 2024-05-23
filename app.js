@@ -1,5 +1,5 @@
-const express = require("express");
 const bodyParser = require("body-parser");
+const express = require("express");
 const Sequelize = require("sequelize");
 const sequelizeConfig = require("./config/config.js");
 const sequelize = new Sequelize(sequelizeConfig.development);
@@ -15,6 +15,7 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const paymentController = require("./controllers/paymentController");
 
 const app = express();
 
