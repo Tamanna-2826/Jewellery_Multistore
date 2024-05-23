@@ -21,7 +21,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use(bodyParser.raw({ type: 'application/json' }));
+// app.use(bodyParser.raw({ type: 'application/json ' }));
 
 
 app.use('/auth', authRoutes);

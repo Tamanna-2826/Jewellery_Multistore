@@ -50,9 +50,12 @@ const {
   City,
 } = require("../models");
 const Sequelize = require("sequelize");
-const concat = require('buffer-concat');
+const concat = require("buffer-concat");
 
 const sequelizeConfig = require("../config/config.js");
+const { Router } = require("express");
+const express = require('express');
+const router = express.Router();
 
 const sequelize = new Sequelize(sequelizeConfig.development);
 
@@ -69,7 +72,6 @@ const generateOrderTrackingId = () => {
   }
   return trackingId;
 };
-
 
 const CGST_RATE = 1.5; // 9%
 const SGST_RATE = 1.5; // 9%
@@ -150,141 +152,145 @@ const createCheckoutSession = async (req, res) => {
   }
 };
 
+// const handleStripeWebhook = async (req, res) => {
+  router.post('/payment/webhook',express.json({ type: "application/json" }), async (req, res) => {
 
-const handleStripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.log(`⚠️  Webhook signature verification failed.`, err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    console.log("Session metadata:", session.metadata); // Log session metadata
-    // const user_id = session.metadata.user_id;
-    const { user_id, order_id } = session.metadata;
-
+  // console.log("req.body", req.body,);
+  // let webhookSecret = `${process.env.STRIPE_WEBHOOK_SECRET}`;
 
     try {
-      const shippingAddress = await Address.findOne({
-        where: {
-          user_id,
-          address_type: "shipping",
-        },
-        include: [
-          {
-            model: State,
-            as: "state",
-            attributes: ["state_name"],
-          },
-        ],
-      });
-      console.log("Shipping address:", shippingAddress); // Log shipping address
-
-      if (!shippingAddress) {
-        console.error("Shipping address not found");
-        return res.status(400).send("Shipping address not found");
-      }
-
-      const cart = await Cart.findOne({
-        where: { user_id },
-        include: [
-          {
-            model: CartItem,
-            as: "cartItems",
-            attributes: ["product_id", "quantity", "price", "size"],
-            include: [
-              {
-                model: Product,
-                as: "product",
-                attributes: ["product_name", "selling_price", "p_images"],
-              },
-            ],
-          },
-        ],
-      });
-      console.log("Cart:", cart); 
-      if (!cart || cart.cartItems.length === 0) {
-        console.error("Cart is empty");
-        return res.status(400).send("Cart is empty");
-      }
-
-      const cartItems = cart.cartItems;
-
-      // Calculate GST and other amounts
-      const totalAmount = session.amount_total / 100;
-      const gstAmount = totalAmount * IGST_RATE;
-      const subTotal = totalAmount - gstAmount;
-
-      const order = await Order.create({
-        order_id,
-        user_id,
-        order_date: new Date(),
-        cgst: gstAmount / 2,
-        sgst: gstAmount / 2,
-        igst: gstAmount,
-        subtotal: subTotal,
-        // shipping_charges: session.metadata.shipping_charges,
-        // coupon_id: session.metadata.coupon_id,
-        // discount_value: session.metadata.discount_value,
-        // discounted_amount: session.metadata.discounted_amount,
-        total_amount: totalAmount,
-        address_id: shippingAddress.address_id,
-        status: "placed",
-      });
-      console.log("Order created:", order); // Log order creation
-
-      for (const cartItem of cartItems) {
-        const itemTotal = cartItem.price * cartItem.quantity;
-        const itemGST = itemTotal * IGST_RATE;
-        const itemSubTotal = itemTotal - itemGST;
-
-        await OrderItem.create({
-          order_id: order.order_id,
-          product_id: cartItem.product_id,
-          quantity: cartItem.quantity,
-          unit_price: cartItem.price,
-          cgst: itemGST / 2,
-          sgst: itemGST / 2,
-          igst: itemGST,
-          sub_total: itemSubTotal,
-          total_price: itemTotal,
-          product_name: cartItem.product.product_name,
-          product_image: cartItem.product.p_images[0],
-        });
-      }
-      console.log("Order items created"); // Log order items creation
-
-      await Payment.create({
-        order_id: order.order_id,
-        amount: totalAmount,
-        currency: session.currency,
-        status: session.payment_status,
-        paymentMethod: "stripe",
-      });
-      console.log("Payment record created"); // Log payment creation
-
-      await CartItem.destroy({
-        where: { cart_id: cart.cart_id },
-        force: false,
-      });
-      console.log("Cart cleared"); // Log cart clearance
-    } catch (error) {
-      console.error("Error processing webhook:", error);
-      return res.status(500).send("Internal Server Error");
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.log(`⚠️Webhook signature verification failed.`, err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-  }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      console.log("Session metadata:", session.metadata); // Log session metadata
+      // const user_id = session.metadata.user_id;
+      const { user_id, order_id } = session.metadata;
+
+      try {
+        const shippingAddress = await Address.findOne({
+          where: {
+            user_id,
+            address_type: "shipping",
+          },
+          include: [
+            {
+              model: State,
+              as: "state",
+              attributes: ["state_name"],
+            },
+          ],
+        });
+        console.log("Shipping address:", shippingAddress); // Log shipping address
+
+        if (!shippingAddress) {
+          console.error("Shipping address not found");
+          return res.status(400).send("Shipping address not found");
+        }
+
+        const cart = await Cart.findOne({
+          where: { user_id },
+          include: [
+            {
+              model: CartItem,
+              as: "cartItems",
+              attributes: ["product_id", "quantity", "price", "size"],
+              include: [
+                {
+                  model: Product,
+                  as: "product",
+                  attributes: ["product_name", "selling_price", "p_images"],
+                },
+              ],
+            },
+          ],
+        });
+        console.log("Cart:", cart);
+        if (!cart || cart.cartItems.length === 0) {
+          console.error("Cart is empty");
+          return res.status(400).send("Cart is empty");
+        }
+
+        const cartItems = cart.cartItems;
+
+        // Calculate GST and other amounts
+        const totalAmount = session.amount_total / 100;
+        const gstAmount = totalAmount * IGST_RATE;
+        const subTotal = totalAmount - gstAmount;
+
+        const order = await Order.create({
+          order_id,
+          user_id,
+          order_date: new Date(),
+          cgst: gstAmount / 2,
+          sgst: gstAmount / 2,
+          igst: gstAmount,
+          subtotal: subTotal,
+          // shipping_charges: session.metadata.shipping_charges,
+          // coupon_id: session.metadata.coupon_id,
+          // discount_value: session.metadata.discount_value,
+          // discounted_amount: session.metadata.discounted_amount,
+          total_amount: totalAmount,
+          address_id: shippingAddress.address_id,
+          status: "placed",
+        });
+        console.log("Order created:", order); // Log order creation
+
+        for (const cartItem of cartItems) {
+          const itemTotal = cartItem.price * cartItem.quantity;
+          const itemGST = itemTotal * IGST_RATE;
+          const itemSubTotal = itemTotal - itemGST;
+
+          await OrderItem.create({
+            order_id: order.order_id,
+            product_id: cartItem.product_id,
+            quantity: cartItem.quantity,
+            unit_price: cartItem.price,
+            cgst: itemGST / 2,
+            sgst: itemGST / 2,
+            igst: itemGST,
+            sub_total: itemSubTotal,
+            total_price: itemTotal,
+            product_name: cartItem.product.product_name,
+            product_image: cartItem.product.p_images[0],
+          });
+        }
+        console.log("Order items created"); // Log order items creation
+
+        await Payment.create({
+          order_id: order.order_id,
+          amount: totalAmount,
+          currency: session.currency,
+          status: session.payment_status,
+          paymentMethod: "stripe",
+        });
+        console.log("Payment record created"); // Log payment creation
+
+        await CartItem.destroy({
+          where: { cart_id: cart.cart_id },
+          force: false,
+        });
+        console.log("Cart cleared"); // Log cart clearance
+      } catch (error) {
+        console.error("Error processing webhook:", error);
+        return res.status(500).send("Internal Server Error");
+      }
+    }
 
   res.json({ received: true });
-};
-
-
+});
 
 module.exports = {
-  createCheckoutSession,
-  handleStripeWebhook,
+  createCheckoutSession
+  // handleStripeWebhook,
 };
