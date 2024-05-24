@@ -66,9 +66,9 @@ module.exports = (sequelize, DataTypes) => {
     vendor_status: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'pending',
+      defaultValue: 'order received',
       validate: {
-        isIn: [['pending', 'confirmed', 'cancelled']]
+        isIn: [['order received', 'processing', 'shipped','out for delivery','delivered']]
     }
     },
     deletedAt: {

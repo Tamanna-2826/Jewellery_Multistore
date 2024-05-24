@@ -750,9 +750,8 @@ const getAdminDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-
 const getBasicOrderDetailsForVendor = async (req, res) => {
-  const vendor_id = req.params.vendorId; // Assuming the vendor ID is passed in the request params
+  const vendor_id = req.params.vendor_id; // Assuming the vendor ID is passed in the request params
 
   try {
     const orders = await Order.findAll({
@@ -761,12 +760,17 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
         "order_date",
         "status",
         "total_amount",
+        [Sequelize.literal('"user"."user_id"'), "user.user_id"], // Group by user_id
+        [Sequelize.literal('"user"."first_name"'), "user.first_name"], // Group by first_name
+        [Sequelize.literal('"user"."last_name"'), "user.last_name"], // Group by last_name
+        [Sequelize.literal('"orderItems->product"."product_id"'), "orderItems.product.product_id"], // Group by product_id
+        [Sequelize.literal('"orderItems->product"."product_name"'), "orderItems.product.product_name"], // Group by product_name
       ],
       include: [
         {
           model: User,
           as: "user",
-          attributes: ["user_id", "first_name", "last_name"],
+          attributes: [],
         },
         {
           model: OrderItem,
@@ -776,20 +780,30 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
             {
               model: Product,
               as: "product",
-              attributes: ["product_id", "name"], // Include relevant attributes from the Product model
+              attributes: [],
               include: [
                 {
                   model: Vendor,
                   as: "vendor",
-                  attributes: [], // Include any vendor attributes you need
-                  where: { vendor_id}, // Filter products based on the vendor ID
+                  attributes: [],
+                  where: { vendor_id },
                 },
               ],
             },
           ],
         },
       ],
-      group: ["Order.order_id", "user.user_id"],
+      group: [
+        "Order.order_id",
+        "Order.order_date",
+        "Order.status",
+        "Order.total_amount",
+        "user.user_id",
+        "user.first_name",
+        "user.last_name",
+        "orderItems.product.product_id",
+        "orderItems.product.product_name",
+      ],
     });
 
     if (orders.length === 0) {
@@ -805,7 +819,6 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve basic order details for vendor" });
   }
 };
-
 
 const getVendorDetailedOrderDetails = async (req, res) => {
   const { order_id,vendor_id } = req.params;
