@@ -756,29 +756,37 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
 
   try {
     const orders = await Order.findAll({
-      where: { vendor_id},
+      attributes: ["order_id", "order_date", "status"],
       include: [
         {
           model: User,
-          attributes: ['id', 'first_name', 'last_name'],
+          as:'user',
+          attributes: ["user_id", "first_name", "last_name"],
         },
         {
           model: OrderItem,
-          attributes: ['order_id', 'order_date', 'status'],
+          as:'orderItems',
+          attributes: ["orderItem_id", "product_id","cgst","sgst","igst"],
+          include: [
+            {
+              model: Product,
+              as:'product',
+              attributes: ["product_id", "product_name"],
+              where: {vendor_id}
+            },
+          ],
         },
       ],
     });
-
     res.json(orders);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 const getVendorDetailedOrderDetails = async (req, res) => {
-  const { order_id,vendor_id } = req.params;
+  const { order_id, vendor_id } = req.params;
 
   try {
     const order = await Order.findOne({
@@ -857,7 +865,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
                   model: Vendor,
                   as: "vendor",
                   attributes: [],
-                  where: { vendor_id}, // Filter products based on the vendor ID
+                  where: { vendor_id }, // Filter products based on the vendor ID
                 },
               ],
             },
@@ -881,7 +889,6 @@ const getVendorDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-
 
 // Add conditions for various status
 const updateOrderItemStatus = async (req, res) => {
