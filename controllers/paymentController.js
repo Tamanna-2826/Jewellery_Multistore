@@ -237,6 +237,7 @@ const handleStripeWebhook = async (req, res) => {
           igst,
           sub_total: sub_total_item,
           total_price,
+          vendor_status:'order_received',
         });
       }
 

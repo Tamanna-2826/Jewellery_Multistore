@@ -862,7 +862,6 @@ const getVendorDetailedOrderDetails = async (req, res) => {
             "sgst",
             "igst",
             "sub_total",
-            "total_price",
           ],
           include: [
             {
@@ -877,7 +876,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
                 "stock_quantity",
                 "size",
               ],
-              where: { vendor_id }, // Filter by vendor_id here
+              where: { vendor_id }, 
               include: [
                 {
                   model: Vendor,
@@ -907,8 +906,6 @@ const getVendorDetailedOrderDetails = async (req, res) => {
   }
 };
 
-
-// Add conditions for various status
 const updateOrderItemStatus = async (req, res) => {
   const { order_id, orderItem_id } = req.params;
   const { vendor_status } = req.body;
@@ -928,57 +925,34 @@ const updateOrderItemStatus = async (req, res) => {
     orderItem.vendor_status = vendor_status;
     await orderItem.save();
 
+    const order = await Order.findByPk(order_id, {
+      include: [{ model: OrderItem, as: 'orderItems' }],
+    });
+
+    const allProcessing = order.orderItems.every(item => item.vendor_status === 'processing');
+    const allShipped = order.orderItems.every(item => item.vendor_status === 'shipped');
+    const allOutForDelivery = order.orderItems.every(item => item.vendor_status === 'out for delivery');
+    const allDelivered = order.orderItems.every(item => item.vendor_status === 'delivered');
+
+    if (allProcessing) {
+      order.status = 'processing';
+    } else if (allShipped) {
+      order.status = 'shipped';
+    } else if (allOutForDelivery) {
+      order.status = 'out for delivery';
+    } else if (allDelivered) {
+      order.status = 'delivered';
+    } 
+    // else {
+    //   order.status = 'placed'; 
+    // }
+
+    await order.save();
+
     res.status(200).json({ message: "Vendor status updated successfully" });
   } catch (error) {
     console.error("Error updating vendor status:", error);
     res.status(500).json({ message: "Failed to update vendor status" });
-  }
-};
-
-// Maybe not working
-const updateOrderStatus = async (req, res) => {
-  const { order_id } = req.params;
-
-  try {
-    const order = await Order.findByPk(order_id, {
-      include: [
-        {
-          model: OrderItem,
-          as: "orderItems",
-          attributes: ["vendor_status"],
-        },
-      ],
-    });
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    const orderItems = order.orderItems;
-
-    const allConfirmed = orderItems.every(
-      (item) => item.vendor_status === "confirmed"
-    );
-
-    if (allConfirmed) {
-      await order.update({ status: "placed" });
-
-      const userDetails = await order.getUser();
-
-      await sendOrderConfirmationEmail(userDetails, order);
-
-      return res.status(200).json({
-        message: 'Order status updated to "placed" and confirmation email sent',
-      });
-    } else {
-      return res.status(400).json({
-        message:
-          'Order status cannot be updated to "placed" yet. Not all items have vendor_status set to "confirmed"',
-      });
-    }
-  } catch (error) {
-    console.error("Error updating order status:", error);
-    res.status(500).json({ message: "Failed to update order status" });
   }
 };
 
@@ -1087,5 +1061,4 @@ module.exports = {
   getBasicOrderDetailsForVendor,
   getVendorDetailedOrderDetails,
   updateOrderItemStatus,
-  updateOrderStatus,
 };
