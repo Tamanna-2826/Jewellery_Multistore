@@ -4,6 +4,7 @@ const Sequelize = require("sequelize");
 const sequelizeConfig = require("./config/config.js");
 const sequelize = new Sequelize(sequelizeConfig.development);
 const cors = require("cors");
+// const timeout = require('express-timeout-handler');
 
 const authRoutes = require("./routes/authRoutes");
 const locationRoutes = require("./routes/locationRoutes");
@@ -15,12 +16,21 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const paymentController = require("./controllers/paymentController");
 
 const app = express();
 
+// // Timeout middleware
+// app.use(timeout.handler({
+//   timeout: 120000, // Timeout duration in milliseconds (e.g., 2 minutes)
+//   onTimeout: (req, res) => {
+//     res.status(503).send('Request Timeout');
+//   },
+// }));
+
 app.use(cors());
-app.use(express.json());
+// app.use(express.json());
+app.use(express.json({ verify: (req, res, buf) => req.rawBody = buf }));
+
 
 // app.use(bodyParser.raw({ type: 'application/json ' }));
 

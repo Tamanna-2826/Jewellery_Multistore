@@ -28,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     amount: {
-      type: DataTypes.DECIMAL(10,2),
+      type: DataTypes.DECIMAL(14,2),
       allowNull: false
     },
     payment_date: {
@@ -36,10 +36,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     status: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    payment_intent_id: {
       type: DataTypes.STRING,
       allowNull: false
     },

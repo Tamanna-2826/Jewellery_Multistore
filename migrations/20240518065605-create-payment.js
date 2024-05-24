@@ -23,7 +23,7 @@ module.exports = {
         allowNull: false
       },
       amount: {
-        type: Sequelize.DECIMAL(10,20),
+        type: Sequelize.DECIMAL(14,2),
         allowNull: false
       },
       payment_date: {
