@@ -750,41 +750,58 @@ const getAdminDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-
 const getBasicOrderDetailsForVendor = async (req, res) => {
   const { vendor_id } = req.params;
 
   try {
+    const orderItems = await OrderItem.findAll({
+      attributes: ["order_id"],
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          attributes: [],
+          where: { vendor_id },
+        },
+      ],
+      group: ["order_id"]
+    });
+
+    const orderIds = orderItems.map(item => item.order_id);
+
     const orders = await Order.findAll({
       attributes: ["order_id", "order_date", "status"],
+      where: {
+        order_id: orderIds
+      },
       include: [
         {
           model: User,
-          as:'user',
+          as: 'user',
           attributes: ["user_id", "first_name", "last_name"],
         },
         {
           model: OrderItem,
-          as:'orderItems',
-          attributes: ["orderItem_id", "product_id","cgst","sgst","igst"],
+          as: 'orderItems',
+          attributes: [],
           include: [
             {
               model: Product,
-              as:'product',
+              as: 'product',
               attributes: ["product_id", "product_name"],
-              where: {vendor_id}
+              where: { vendor_id }
             },
           ],
         },
       ],
     });
+
     res.json(orders);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 const getVendorDetailedOrderDetails = async (req, res) => {
   const { order_id, vendor_id } = req.params;
 
@@ -860,12 +877,12 @@ const getVendorDetailedOrderDetails = async (req, res) => {
                 "stock_quantity",
                 "size",
               ],
+              where: { vendor_id }, // Filter by vendor_id here
               include: [
                 {
                   model: Vendor,
                   as: "vendor",
                   attributes: [],
-                  where: { vendor_id }, // Filter products based on the vendor ID
                 },
               ],
             },
@@ -889,6 +906,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
+
 
 // Add conditions for various status
 const updateOrderItemStatus = async (req, res) => {
