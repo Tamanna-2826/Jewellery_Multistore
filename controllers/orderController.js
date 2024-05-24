@@ -509,52 +509,6 @@ const getOrderDetailsByUserId = async (req, res) => {
   }
 };
 
-// const getDetailedOrderDetails = async (req, res) => {
-//   const { user_id, order_id } = req.params;
-
-//   try {
-//     const order = await Order.findOne({
-//       where: { user_id, order_id },
-//       attributes: ["order_id", "order_date", "status", "total_amount"],
-//       include: [
-//         {
-//           model: OrderItem,
-//           as: "orderItems",
-//           attributes: [
-//             "order_id",
-//             "product_id",
-//             "quantity",
-//             "unit_price",
-//             "cgst",
-//             "sgst",
-//             "igst",
-//             "sub_total",
-//             "total_price",
-//           ],
-//           include: [
-//             {
-//               model: Product,
-//               as: "product",
-//               attributes: ["product_name", "p_images"],
-//             },
-//           ],
-//         },
-//       ],
-//     });
-
-//     if (!order) {
-//       return res.status(404).json({ message: "Order not found" });
-//     }
-
-//     res.status(200).json({
-//       message: "Order details retrieved successfully",
-//       order,
-//     });
-//   } catch (error) {
-//     console.error("Error retrieving order details:", error);
-//     res.status(500).json({ message: "Failed to retrieve order details" });
-//   }
-// };
 const getDetailedOrderDetails = async (req, res) => {
   const { user_id, order_id } = req.params;
 
@@ -643,13 +597,6 @@ const getDetailedOrderDetails = async (req, res) => {
         billingAddresses,
       });
     }
-
-    // res.status(200).json({
-    //   message: "Order details retrieved successfully",
-    //   order,
-    //   shippingAddresses,
-    //   billingAddresses
-    // });
   } catch (error) {
     console.error("Error retrieving order details:", error);
     res.status(500).json({ message: "Failed to retrieve order details" });
@@ -803,55 +750,170 @@ const getAdminDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-const getPendingOrdersForVendor = async (req, res) => {
-  const { vendor_id } = req.params;
+
+const getBasicOrderDetailsForVendor = async (req, res) => {
+  const vendor_id = req.params.vendorId; // Assuming the vendor ID is passed in the request params
 
   try {
     const orders = await Order.findAll({
-      attributes: ["order_id", "order_date", "status", "total_amount"],
+      attributes: [
+        "order_id",
+        "order_date",
+        "status",
+        "total_amount",
+      ],
       include: [
-        {
-          model: OrderItem,
-          as: "orderItems",
-          attributes: ["orderItem_id"],
-          where: {
-            vendor_status: "pending",
-          },
-          include: [
-            {
-              model: Product,
-              as: "product",
-              attributes: [],
-              where: {
-                vendor_id,
-              },
-            },
-          ],
-        },
         {
           model: User,
           as: "user",
           attributes: ["user_id", "first_name", "last_name"],
         },
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: [],
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: ["product_id", "name"], // Include relevant attributes from the Product model
+              include: [
+                {
+                  model: Vendor,
+                  as: "vendor",
+                  attributes: [], // Include any vendor attributes you need
+                  where: { vendor_id}, // Filter products based on the vendor ID
+                },
+              ],
+            },
+          ],
+        },
       ],
+      group: ["Order.order_id", "user.user_id"],
     });
 
     if (orders.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No pending orders found for this vendor" });
+      return res.status(404).json({ message: "No orders found for this vendor" });
     }
 
     res.status(200).json({
-      message: "Pending orders retrieved successfully",
+      message: "Basic order details retrieved successfully",
       orders,
     });
   } catch (error) {
-    console.error("Error retrieving pending orders:", error);
-    res.status(500).json({ message: "Failed to retrieve pending orders" });
+    console.error("Error retrieving basic order details for vendor:", error);
+    res.status(500).json({ message: "Failed to retrieve basic order details for vendor" });
   }
 };
 
+
+const getVendorDetailedOrderDetails = async (req, res) => {
+  const { order_id,vendor_id } = req.params;
+
+  try {
+    const order = await Order.findOne({
+      where: { order_id },
+      attributes: ["order_id", "order_date", "status", "total_amount"],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_no",
+          ],
+          include: [
+            {
+              model: Address,
+              as: "addresses",
+              attributes: [
+                "address_id",
+                "user_id",
+                "first_name",
+                "last_name",
+                "phone_no",
+                "street_address",
+                "city_id",
+                "state_id",
+                "pincode",
+                "address_type",
+              ],
+              include: [
+                {
+                  model: City,
+                  as: "city",
+                  attributes: ["city_name"],
+                },
+                {
+                  model: State,
+                  as: "state",
+                  attributes: ["state_name"],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: OrderItem,
+          as: "orderItems",
+          attributes: [
+            "product_id",
+            "quantity",
+            "unit_price",
+            "cgst",
+            "sgst",
+            "igst",
+            "sub_total",
+            "total_price",
+          ],
+          include: [
+            {
+              model: Product,
+              as: "product",
+              attributes: [
+                "product_name",
+                "p_images",
+                "main_description",
+                "mrp",
+                "selling_price",
+                "stock_quantity",
+                "size",
+              ],
+              include: [
+                {
+                  model: Vendor,
+                  as: "vendor",
+                  attributes: [],
+                  where: { vendor_id}, // Filter products based on the vendor ID
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({
+      message: "Detailed order details retrieved successfully",
+      order: order,
+    });
+  } catch (error) {
+    console.error("Error retrieving detailed order details:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve detailed order details" });
+  }
+};
+
+
+// Add conditions for various status
 const updateOrderItemStatus = async (req, res) => {
   const { order_id, orderItem_id } = req.params;
   const { vendor_status } = req.body;
@@ -878,6 +940,7 @@ const updateOrderItemStatus = async (req, res) => {
   }
 };
 
+// Maybe not working
 const updateOrderStatus = async (req, res) => {
   const { order_id } = req.params;
 
@@ -1026,7 +1089,8 @@ module.exports = {
   getDetailedOrderDetails,
   getBasicOrderDetailsForAdmin,
   getAdminDetailedOrderDetails,
-  getPendingOrdersForVendor,
+  getBasicOrderDetailsForVendor,
+  getVendorDetailedOrderDetails,
   updateOrderItemStatus,
   updateOrderStatus,
 };
