@@ -192,7 +192,6 @@ const vendorDeactivation = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
     }
-    // await softDeleteVendorProducts(vendor_id);
     await Product.destroy({
       where: { vendor_id}
     });

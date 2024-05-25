@@ -783,7 +783,16 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
         {
           model: OrderItem,
           as: 'orderItems',
-          attributes: [],
+          attributes: [
+            "product_id",
+            "quantity",
+            "unit_price",
+            "cgst",
+            "sgst",
+            "igst",
+            "sub_total",
+            "total_price",
+          ],
           include: [
             {
               model: Product,
@@ -905,7 +914,6 @@ const getVendorDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
-
 const updateOrderItemStatus = async (req, res) => {
   const { order_id, orderItem_id } = req.params;
   const { vendor_status } = req.body;
@@ -929,12 +937,12 @@ const updateOrderItemStatus = async (req, res) => {
       include: [{ model: OrderItem, as: 'orderItems' }],
     });
 
-    const allProcessing = order.orderItems.every(item => item.vendor_status === 'processing');
+    const hasProcessing = order.orderItems.some(item => item.vendor_status === 'processing');
     const allShipped = order.orderItems.every(item => item.vendor_status === 'shipped');
     const allOutForDelivery = order.orderItems.every(item => item.vendor_status === 'out for delivery');
     const allDelivered = order.orderItems.every(item => item.vendor_status === 'delivered');
 
-    if (allProcessing) {
+    if (hasProcessing) {
       order.status = 'processing';
     } else if (allShipped) {
       order.status = 'shipped';
@@ -942,10 +950,9 @@ const updateOrderItemStatus = async (req, res) => {
       order.status = 'out for delivery';
     } else if (allDelivered) {
       order.status = 'delivered';
-    } 
-    // else {
-    //   order.status = 'placed'; 
-    // }
+    } else {
+      order.status = 'placed'; 
+    }
 
     await order.save();
 
@@ -955,6 +962,7 @@ const updateOrderItemStatus = async (req, res) => {
     res.status(500).json({ message: "Failed to update vendor status" });
   }
 };
+
 
 const sendOrderConfirmationEmail = async (userDetails, order) => {
   const htmlContent = `

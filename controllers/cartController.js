@@ -83,7 +83,6 @@ const addToCart = async (req, res) => {
       const subtotal = parseFloat(item.subTotal);
       if (!isNaN(subtotal)) {
         total += subtotal;
-        // totalGST += subtotal * 0.03;
       }
     }
  
@@ -151,7 +150,6 @@ const getCartItemsByUserId = async (req, res) => {
       paranoid: true,
     });
     let total = 0;
-    let totalGST = 0;
 
     for (const item of cartItems) {
       const subtotal = parseFloat(item.subTotal);
@@ -161,14 +159,10 @@ const getCartItemsByUserId = async (req, res) => {
     }
 
     total = total.toFixed(2);
-    totalGST = (total * 0.03).toFixed(2); 
-    const grandTotal = (parseFloat(total) + parseFloat(totalGST)).toFixed(2);
-
+ 
     return res.status(200).json({
       cartItems,
       total,
-      totalGST,
-      grandTotal,
     });
   } catch (error) {
     console.error("Error fetching cart items:", error);

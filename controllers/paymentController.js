@@ -31,23 +31,6 @@ const createCheckoutSession = async (req, res) => {
   const { user_id } = req.body;
 
   try {
-    const shippingAddress = await Address.findOne({
-      where: {
-        user_id,
-        address_type: "shipping",
-      },
-      include: [
-        {
-          model: State,
-          as: "state",
-          attributes: ["state_name"],
-        },
-      ],
-    });
-
-    if (!shippingAddress) {
-      throw new Error("Shipping address not found");
-    }
 
     const cart = await Cart.findOne({
       where: { user_id },
@@ -74,7 +57,8 @@ const createCheckoutSession = async (req, res) => {
           name: item.product.product_name,
           images: item.product.p_images,
         },
-        unit_amount: item.product.selling_price * 100,
+        // unit_amount: item.product.selling_price * 100,
+        unit_amount: Math.round(item.product.selling_price * 1.03 * 100), // Adding 3% GST
       },
       quantity: item.quantity,
     }));
@@ -90,10 +74,8 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         order_id: generateOrderTrackingId(),
         user_id,
-        address_id: shippingAddress.address_id,
       },
     });
-    console.log("Order_id : ", session.metadata.order_id);
 
     res.status(200).send({ sessionId: session.id });
   } catch (error) {
@@ -124,6 +106,7 @@ const handleStripeWebhook = async (req, res) => {
     const { user_id, order_id } = session.metadata;
 
     try {
+
       const shippingAddress = await Address.findOne({
         where: {
           user_id,
@@ -237,7 +220,7 @@ const handleStripeWebhook = async (req, res) => {
           igst,
           sub_total: sub_total_item,
           total_price,
-          vendor_status:'order_received',
+          vendor_status: "order received",
         });
       }
 
@@ -248,22 +231,19 @@ const handleStripeWebhook = async (req, res) => {
         order_id,
         user_id,
         order_date: new Date(),
-        cgst,
-        sgst,
-        igst,
         subtotal,
         total_amount,
         address_id: shippingAddress.address_id,
         status: "placed",
       });
       const paymentIntent = await stripe.paymentIntents.retrieve(
-        session.payment_intent
+        session.payment_intent,
       );
 
       await Payment.create({
         order_id: order.order_id,
         currency: session.currency,
-        payment_method_name: session.payment_method_types,
+        payment_method_name:'card',
         amount: total_amount,
         payment_date: new Date(paymentIntent.created * 1000),
         status: session.status,
@@ -275,7 +255,9 @@ const handleStripeWebhook = async (req, res) => {
         force: false,
       });
 
-      return res.status(200).json({ message: "Payment completed Successfully" });
+      return res
+        .status(200)
+        .json({ message: "Payment completed Successfully" });
     } catch (error) {
       console.error("Error processing webhook:", error);
       return res.status(500).json({ message: "Internal Server Error" });

@@ -63,13 +63,29 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true
     },
+    order_received: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    processing: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    shipped: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    out_for_delivery: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    delivered: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     vendor_status: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 'order received',
-      validate: {
-        isIn: [['order received', 'processing', 'shipped','out for delivery','delivered']]
-    }
     },
     deletedAt: {
       type: DataTypes.DATE,

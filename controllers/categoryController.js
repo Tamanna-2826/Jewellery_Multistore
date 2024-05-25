@@ -43,7 +43,6 @@ const getAllCategories = async (req, res) => {
           return res.status(404).json({ message: "No categories found" });
         }
     
-        // Construct Cloudinary image URLs using public_ids
         categories.forEach((category) => {
           if (category.category_image) {
             category.imageURL = `https://res.cloudinary.com/dyjgvi4ma/image/upload/categories/${category.category_image}`;
@@ -75,12 +74,7 @@ const softDeleteCategory = async (req, res) => {
       return res.status(404).json({ error: "Category not found" });
     }
 
-    // await ProductModel.update(
-    //   { deletedAt: new Date() }, // Set the deletedAt field to the current date/time
-    //   { where: { category_id: catID } }
-    // );
     await Product.destroy(
-      // { deletedAt: new Date() }, // Set the deletedAt field to the current date/time
       { where: { category_id } }
     );
 

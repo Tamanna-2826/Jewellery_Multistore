@@ -36,15 +36,6 @@ module.exports = (sequelize, DataTypes) => {
     order_date: {
       type: DataTypes.DATE
     },
-    cgst: {
-      type: DataTypes.DECIMAL(10,2)
-    },
-    sgst: {
-      type: DataTypes.DECIMAL(10,2)
-    },
-    igst: {
-      type: DataTypes.DECIMAL(10,2)
-    },
     subtotal: {
       type: DataTypes.DECIMAL(10,2)
     },
@@ -80,11 +71,29 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'SET NULL',
       onDelete: 'SET NULL' 
     },
+    order_placed: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    processing: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    shipped: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    out_for_delivery: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    delivered: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     status: {
-      type: DataTypes.STRING,
-      validate: {
-        isIn: [['pending', 'processing', 'shipped', 'out of delivery', 'delivered', 'cancelled','placed']]
-    }
+      type: DataTypes.INTEGER,
+      allowNull: false
     },
     deletedAt: {
       type: DataTypes.DATE,

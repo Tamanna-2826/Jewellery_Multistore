@@ -12,7 +12,6 @@ const addProduct = async (req, res) => {
       mrp,
       selling_price,
       vendor_price,
-      stock_quantity,
       clasp_type,
       gem_type,
       gem_color,
@@ -61,7 +60,6 @@ const addProduct = async (req, res) => {
       mrp,
       selling_price,
       vendor_price,
-      stock_quantity,
       clasp_type,
       gem_type,
       gem_color,
@@ -314,7 +312,6 @@ const getProductDetails = async (req, res) => {
         mrp: product.mrp,
         selling_price: product.selling_price,
         vendor_price: product.vendor_price,
-        stock_quantity: product.stock_quantity,
         clasp_type: product.clasp_type,
         gem_type: product.gem_type,
         gem_color: product.gem_color,
@@ -454,7 +451,6 @@ const getProductsBySameVendor = async (req, res) => {
     const { product_id } = req.params;
   
     try {
-      // Check if the product exists
       const product = await Product.findByPk(product_id);
   
       if (!product) {
@@ -469,7 +465,6 @@ const getProductsBySameVendor = async (req, res) => {
         mrp,
         selling_price,
         vendor_price,
-        stock_quantity,
         clasp_type,
         gem_type,
         gem_color,
@@ -489,7 +484,6 @@ const getProductsBySameVendor = async (req, res) => {
       product.mrp = mrp;
       product.selling_price = selling_price;
       product.vendor_price = vendor_price;
-      product.stock_quantity = stock_quantity;
       product.clasp_type = clasp_type;
       product.gem_type = gem_type;
       product.gem_color = gem_color;
@@ -530,95 +524,6 @@ const getProductsBySameVendor = async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   };
-  
-
-// const updateProduct = async (req, res) => {
-//   const {product_id }= req.params;
-
-//   try {
-//     // Check if the product exists
-//     const product = await Product.findByPk(product_id);
-//     if (!product) {
-//       return res.status(404).json({ error: "Product not found" });
-//     }
-
-//     const {
-//       category_id,
-//       vendor_id,
-//       product_name,
-//       main_description,
-//       mrp,
-//       selling_price,
-//       vendor_price,
-//       stock_quantity,
-//       clasp_type,
-//       gem_type,
-//       gem_color,
-//       occasion_type,
-//       size,
-//       basic_description,
-//       gold_type,
-//       no_of_gems,
-//       purity,
-//       weight,
-//     } = req.body;
-
-//     // console.log("CAT ID : ", req.body.vendor_id);
-//     // console.log("GEM : ", req.body.no_of_gem);
-
-//     product.category_id = category_id;
-//     product.vendor_id = vendor_id;
-//     product.product_name = product_name;
-//     product.main_description = main_description;
-//     product.mrp = mrp;
-//     product.selling_price = selling_price;
-//     product.vendor_price = vendor_price;
-//     product.stock_quantity = stock_quantity;
-//     product.clasp_type = clasp_type;
-//     product.gem_type = gem_type;
-//     product.gem_color = gem_color;
-//     product.occasion_type = occasion_type;
-//     product.size = size;
-//     product.basic_description = basic_description;
-//     product.gold_type = gold_type;
-//     product.no_of_gems = no_of_gems;
-//     product.purity = purity;
-//     product.weight = weight;
-
-//     const productImages = [...product.p_images];
-
-//     if (req.files && req.files.length > 0) {
-//       for (const file of req.files) {
-//         const result = await cloudinary.uploader.upload(file.path, {
-//           folder: "products",
-//         });
-//         productImages.push(result.public_id);
-//       }
-//     }
-
-//     if (req.body.deletedImages && req.body.deletedImages.length > 0) {
-//       for (const deletedImg of req.body.deletedImages) {
-//         const index = productImages.indexOf(deletedImg);
-//         if (index !== -1) {
-//           productImages.splice(index, 1);
-//           await cloudinary.uploader.destroy(deletedImg);
-//         }
-//       }
-//     }
-
-//     product.p_images = productImages;
-//     await product.save();
-
-//     res.json({
-//       message: "Product updated successfully",
-//       updatedProduct: product,
-//     });
-//   } catch (error) {
-//     console.error("Error updating product details:", error.message);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// };
-
 
 module.exports = {
   addProduct,

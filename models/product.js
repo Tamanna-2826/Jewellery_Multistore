@@ -72,10 +72,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL,
         allowNull: false,
       },
-      stock_quantity: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
       clasp_type: {
         type: DataTypes.STRING,
         allowNull: true,
