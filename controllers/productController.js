@@ -24,8 +24,7 @@ const addProduct = async (req, res) => {
       weight,
     } = req.body;
 
-    console.log("CAT ID : ",req.body.category_id);
-
+    console.log("CAT ID : ", req.body.category_id);
 
     const productImages = [];
 
@@ -272,7 +271,7 @@ const getProductDetails = async (req, res) => {
           include: [
             {
               model: State,
-              as:"state",
+              as: "state",
               attributes: ["state_name"],
             },
           ],
@@ -299,9 +298,11 @@ const getProductDetails = async (req, res) => {
         product_name: product.product_name,
         vendor: {
           vendor_id: product.vendor.vendor_id,
-          vendor_name: product.vendor.vendor_name,
+          vendor_name:
+            product.vendor.first_name + " " + product.vendor.last_name,
           email: product.vendor.email,
-          state_name: product.vendor.state? product.vendor.state.state_name
+          state_name: product.vendor.state
+            ? product.vendor.state.state_name
             : null,
         },
         category: {
@@ -447,83 +448,83 @@ const getProductsBySameVendor = async (req, res) => {
   }
 };
 
-  const updateProduct = async (req, res) => {
-    const { product_id } = req.params;
-  
-    try {
-      const product = await Product.findByPk(product_id);
-  
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-  
-      const {
-        category_id,
-        vendor_id,
-        product_name,
-        main_description,
-        mrp,
-        selling_price,
-        vendor_price,
-        clasp_type,
-        gem_type,
-        gem_color,
-        occasion_type,
-        size,
-        basic_description,
-        gold_type,
-        no_of_gems,
-        purity,
-        weight,
-      } = req.body;
-  
-      product.category_id = category_id;
-      product.vendor_id = vendor_id;
-      product.product_name = product_name;
-      product.main_description = main_description;
-      product.mrp = mrp;
-      product.selling_price = selling_price;
-      product.vendor_price = vendor_price;
-      product.clasp_type = clasp_type;
-      product.gem_type = gem_type;
-      product.gem_color = gem_color;
-      product.occasion_type = occasion_type;
-      product.size = size;
-      product.basic_description = basic_description;
-      product.gold_type = gold_type;
-      product.no_of_gems = no_of_gems;
-      product.purity = purity;
-      product.weight = weight;
-  
-      const productImages = [...product.p_images];
-  
-      if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          const result = await cloudinary.uploader.upload(file.path, {
-            folder: 'products',
-          });
-          productImages.push(result.public_id);
-        }
-      }
-  
-      if (req.body.existingImages) {
-        const existingImages = JSON.parse(req.body.existingImages);
-        productImages.push(...existingImages);
-      }
-  
-      product.p_images = productImages;
-  
-      await product.save();
-  
-      res.json({
-        message: 'Product updated successfully',
-        updatedProduct: product,
-      });
-    } catch (error) {
-      console.error('Error updating product details:', error.message);
-      res.status(500).json({ error: 'Internal Server Error' });
+const updateProduct = async (req, res) => {
+  const { product_id } = req.params;
+
+  try {
+    const product = await Product.findByPk(product_id);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
     }
-  };
+
+    const {
+      category_id,
+      vendor_id,
+      product_name,
+      main_description,
+      mrp,
+      selling_price,
+      vendor_price,
+      clasp_type,
+      gem_type,
+      gem_color,
+      occasion_type,
+      size,
+      basic_description,
+      gold_type,
+      no_of_gems,
+      purity,
+      weight,
+    } = req.body;
+
+    product.category_id = category_id;
+    product.vendor_id = vendor_id;
+    product.product_name = product_name;
+    product.main_description = main_description;
+    product.mrp = mrp;
+    product.selling_price = selling_price;
+    product.vendor_price = vendor_price;
+    product.clasp_type = clasp_type;
+    product.gem_type = gem_type;
+    product.gem_color = gem_color;
+    product.occasion_type = occasion_type;
+    product.size = size;
+    product.basic_description = basic_description;
+    product.gold_type = gold_type;
+    product.no_of_gems = no_of_gems;
+    product.purity = purity;
+    product.weight = weight;
+
+    const productImages = [...product.p_images];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "products",
+        });
+        productImages.push(result.public_id);
+      }
+    }
+
+    if (req.body.existingImages) {
+      const existingImages = JSON.parse(req.body.existingImages);
+      productImages.push(...existingImages);
+    }
+
+    product.p_images = productImages;
+
+    await product.save();
+
+    res.json({
+      message: "Product updated successfully",
+      updatedProduct: product,
+    });
+  } catch (error) {
+    console.error("Error updating product details:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 module.exports = {
   addProduct,

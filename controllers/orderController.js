@@ -519,8 +519,12 @@ const getDetailedOrderDetails = async (req, res) => {
         "order_id",
         "order_date",
         "status",
+        "order_placed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
         "total_amount",
-        "updatedAt",
       ],
       include: [
         {
@@ -818,7 +822,17 @@ const getVendorDetailedOrderDetails = async (req, res) => {
   try {
     const order = await Order.findOne({
       where: { order_id },
-      attributes: ["order_id", "order_date", "status", "total_amount"],
+      attributes: [
+        "order_id",
+        "order_date",
+        "status",
+        "total_amount",
+        "order_placed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+      ],
       include: [
         {
           model: User,
@@ -865,6 +879,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
           model: OrderItem,
           as: "orderItems",
           attributes: [
+            "orderItem_id",
             "product_id",
             "quantity",
             "unit_price",
@@ -872,6 +887,11 @@ const getVendorDetailedOrderDetails = async (req, res) => {
             "sgst",
             "igst",
             "sub_total",
+            "order_received",
+            "processing",
+            "shipped",
+            "out_for_delivery",
+            "delivered",
           ],
           include: [
             {
@@ -915,31 +935,26 @@ const getVendorDetailedOrderDetails = async (req, res) => {
   }
 };
 
-const updateOrderItemStatus = async (req, res) => {
+const updateVendorOrderItemStatus = async (req, res) => {
   const { order_id, orderItem_id } = req.params;
   const { vendor_status } = req.body;
-  const { authority } = req.decodedToken; // Extract authority from the decoded token
+  const { authority } = req.decodedToken;
+
+  if (authority !== 'vendor') {
+    return res.status(403).json({ message: "Access denied" });
+  }
 
   try {
     const orderItem = await OrderItem.findOne({
-      where: {
-        order_id,
-        id: orderItem_id,
-      },
+      where: { order_id, id: orderItem_id },
     });
 
     if (!orderItem) {
       return res.status(404).json({ message: "Order Item not found" });
     }
 
-    if (authority === "vendor" && vendor_status > 3) {
-      return res
-        .status(403)
-        .json({ message: "Vendors can only update status up to 'shipped'" });
-    } else if (authority === "admin" && vendor_status <= 3) {
-      return res.status(403).json({
-        message: "Admins can only update status from 'shipped' onwards",
-      });
+    if (vendor_status > 3) {
+      return res.status(403).json({ message: "Vendors can only update status up to 'shipped'" });
     }
 
     switch (vendor_status) {
@@ -951,54 +966,27 @@ const updateOrderItemStatus = async (req, res) => {
         orderItem.vendor_status = 3;
         orderItem.shipped = new Date();
         break;
-      case 4:
-        orderItem.vendor_status = 4;
-        orderItem.out_for_delivery = new Date();
-        break;
-      case 5:
-        orderItem.vendor_status = 5;
-        orderItem.delivered = new Date();
-        break;
       default:
         return res.status(400).json({ message: "Invalid vendor status" });
     }
+
     await orderItem.save();
 
     const order = await Order.findByPk(order_id, {
       include: [{ model: OrderItem, as: "orderItems" }],
     });
 
-    if (authority === "vendor") {
-      const hasProcessing = order.orderItems.some(
-        (item) => item.vendor_status === 2
-      );
-      const hasShipped = order.orderItems.some(
-        (item) => item.vendor_status === 3
-      );
+    const allShipped = order.orderItems.every(item => item.vendor_status === 3);
+
+    if (allShipped) {
+      order.status = 3;
+      order.shipped = new Date();
+    } else {
+      const hasProcessing = order.orderItems.some(item => item.vendor_status === 2);
 
       if (hasProcessing) {
         order.status = 2;
         order.processing = new Date();
-      } else if (hasShipped) {
-        order.status = 2;
-        order.shipped = new Date();
-      } else {
-        order.status = 1;
-      }
-    } else if (authority === "admin") {
-      const hasOutForDelivery = order.orderItems.some(
-        (item) => item.vendor_status === 4
-      );
-      const hasDelivered = order.orderItems.some(
-        (item) => item.vendor_status === 5
-      );
-
-      if (hasOutForDelivery) {
-        order.status = 4;
-        order.out_for_delivery = new Date();git
-      } else if (hasDelivered) {
-        order.status = 5;
-        order.delivered = new Date();
       }
     }
 
@@ -1010,102 +998,48 @@ const updateOrderItemStatus = async (req, res) => {
     res.status(500).json({ message: "Failed to update vendor status" });
   }
 };
+const updateAdminOrderStatus = async (req, res) => {
+  const { order_id } = req.params;
+  const { status } = req.body;
+  const { authority } = req.decodedToken;
 
-module.exports = { updateOrderItemStatus };
-
-const sendOrderConfirmationEmail = async (userDetails, order) => {
-  const htmlContent = `
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Order Confirmation</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 10px;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f4f4f4;
-            margin: 0;
-          }
-          .container {
-            max-width: 600px;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            margin-bottom: 20px;
-          }
-          h1 {
-            text-align: center;
-          }
-          .header img {
-            max-width: 200px;
-          }
-          .content {
-            margin-bottom: 20px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 3px solid #ccc;
-            background-color: #d7d3d3;
-            height: 100px;
-          }
-          .button {
-            justify-content: center;
-            align-items: center;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #fff;
-            text-decoration: none;
-            align-items: center;
-            text-align: center;
-            border-radius: 5px;
-            margin-left: 35%;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Order Confirmation</h1>
-          </div>
-          <div class="content">
-            <p>Dear ${userDetails.first_name} ${userDetails.last_name},</p>
-            <p>Your order has been confirmed and is now being processed. Here are your order details:</p>
-            <ul>
-              ${order.orderItems
-                .map(
-                  (item) => `
-                    <li>${item.quantity}x ${item.product.product_name} - $${item.total_price}</li>
-                  `
-                )
-                .join("")}
-            </ul>
-            <p>Total Price: $${order.total_amount}</p>
-            <p>Thank you for shopping with us!</p>
-          </div>
-          <div class="footer">
-            <a href="#" class="button">Track Order</a>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  if (authority !== 'admin') {
+    return res.status(403).json({ message: "Access denied" });
+  }
 
   try {
-    await sendEmail(userDetails.email, "Order Confirmation", htmlContent);
-    console.log("Order confirmation email sent successfully");
+    const order = await Order.findByPk(order_id, {
+      include: [{ model: OrderItem, as: "orderItems" }],
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (status < 3) { 
+      return res.status(403).json({ message: "Admins can only update status from 'shipped' onwards" });
+    }
+
+    await sequelize.transaction(async (t) => { 
+      await OrderItem.update(
+        { vendor_status: status },
+        { where: { order_id }, transaction: t }
+      );
+
+      order.status = status;
+      if (status === 4) {
+        order.out_for_delivery = new Date();
+      } else if (status === 5) {
+        order.delivered = new Date();
+      }
+
+      await order.save({ transaction: t });
+    });
+
+    res.status(200).json({ message: "Order status updated successfully" });
   } catch (error) {
-    console.error("Error sending order confirmation email:", error);
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Failed to update order status" });
   }
 };
 
@@ -1117,5 +1051,6 @@ module.exports = {
   getAdminDetailedOrderDetails,
   getBasicOrderDetailsForVendor,
   getVendorDetailedOrderDetails,
-  updateOrderItemStatus,
+  updateVendorOrderItemStatus,
+  updateAdminOrderStatus,
 };

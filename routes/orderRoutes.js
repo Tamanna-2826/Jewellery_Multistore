@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
+const { jwtMiddleware } = require('../middleware/jwtMiddleware');
 
 router.post('/add',orderController.addOrder);
 router.get('/:user_id', orderController.getOrderDetailsByUserId);
@@ -9,7 +10,8 @@ router.get('/admin/orders', orderController.getBasicOrderDetailsForAdmin);
 router.get('/admin/orders/:order_id', orderController.getAdminDetailedOrderDetails); 
 router.get('/vendors/:vendor_id/orders', orderController.getBasicOrderDetailsForVendor);
 router.get('/:order_id/vendors/:vendor_id', orderController.getVendorDetailedOrderDetails);
-router.put('/:order_id/orderItems/:orderItem_id/status', orderController.updateOrderItemStatus);
+router.put('/vendor/order/:order_id/item/:orderItem_id/status', orderController.updateVendorOrderItemStatus);
+router.put('/admin/order/:order_id/status', orderController.updateAdminOrderStatus);
 
 
 module.exports = router;

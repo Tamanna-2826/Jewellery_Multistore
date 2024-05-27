@@ -5,7 +5,6 @@ const bcrypt = require("bcryptjs");
 
 const firebase = require("firebase-admin");
 
-// Initialize Firebase Admin SDK
 var serviceAccount = require("../config/jewellery-multistore-operation-firebase-adminsdk");
 firebase.initializeApp({
   credential: firebase.credential.cert(serviceAccount),
@@ -30,7 +29,8 @@ const userLogin = async (req, res) => {
     }
     const authority ="user";
     const token = generateToken(user.user_id,user.first_name,user.email,authority);
-    res .status(200) .json({ message: "Phone number verified successfully", token, user });
+ 
+     res .status(200) .json({ message: "Phone number verified successfully", token, user });
   } catch (error) {
     console.error("Error verifying ID token:", error);
     res.status(401).json({ error: "Invalid ID token" });
@@ -118,23 +118,24 @@ const vendorLogin = async (req, res) => {
 
   const getUserProfile = async (req, res) => {
     try {
-      const userId = req.decodedToken.user_id;
+      const userId = req.decodedToken.id;
+      console.log("TOKEN USER ID : ", userId);
+      console.log("DECODED TOKEN : ", req.decodedToken);
       
       const user = await User.findOne({ where: { user_id: userId } });
-
+  
       if (user) {  
         res.status(200).json({
           message: "User profile retrieved successfully",
           user: user,
         });
       } else {
-        res.status(404).json({ message: "User  not found" });
+        res.status(404).json({ message: "User not found" });
       }
-  
-      res.status(200).json({ user });
     } catch (error) {
       console.error('Error fetching user profile:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   };
+  
 module.exports = { userLogin ,vendorLogin,adminLogin,userRegister,getUserProfile};
