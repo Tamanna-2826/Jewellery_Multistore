@@ -719,7 +719,6 @@ const getAdminDetailedOrderDetails = async (req, res) => {
                 "main_description",
                 "mrp",
                 "selling_price",
-                "stock_quantity",
                 "size",
               ],
               include: [
@@ -759,32 +758,33 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
+          as: "product",
           attributes: [],
           where: { vendor_id },
         },
       ],
-      group: ["order_id"]
+      group: ["order_id"],
     });
 
-    const orderIds = orderItems.map(item => item.order_id);
+    const orderIds = orderItems.map((item) => item.order_id);
 
     const orders = await Order.findAll({
       attributes: ["order_id", "order_date", "status"],
       where: {
-        order_id: orderIds
+        order_id: orderIds,
       },
       include: [
         {
           model: User,
-          as: 'user',
+          as: "user",
           attributes: ["user_id", "first_name", "last_name"],
         },
         {
           model: OrderItem,
-          as: 'orderItems',
+          as: "orderItems",
           attributes: [
             "product_id",
+            "orderItem_id",
             "quantity",
             "unit_price",
             "cgst",
@@ -796,9 +796,9 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
           include: [
             {
               model: Product,
-              as: 'product',
+              as: "product",
               attributes: ["product_id", "product_name"],
-              where: { vendor_id }
+              where: { vendor_id },
             },
           ],
         },
@@ -811,6 +811,7 @@ const getBasicOrderDetailsForVendor = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 const getVendorDetailedOrderDetails = async (req, res) => {
   const { order_id, vendor_id } = req.params;
 
@@ -882,10 +883,9 @@ const getVendorDetailedOrderDetails = async (req, res) => {
                 "main_description",
                 "mrp",
                 "selling_price",
-                "stock_quantity",
                 "size",
               ],
-              where: { vendor_id }, 
+              where: { vendor_id },
               include: [
                 {
                   model: Vendor,
@@ -914,15 +914,17 @@ const getVendorDetailedOrderDetails = async (req, res) => {
       .json({ message: "Failed to retrieve detailed order details" });
   }
 };
+
 const updateOrderItemStatus = async (req, res) => {
   const { order_id, orderItem_id } = req.params;
   const { vendor_status } = req.body;
+  const { authority } = req.decodedToken; // Extract authority from the decoded token
 
   try {
     const orderItem = await OrderItem.findOne({
       where: {
         order_id,
-        orderItem_id,
+        id: orderItem_id,
       },
     });
 
@@ -930,28 +932,74 @@ const updateOrderItemStatus = async (req, res) => {
       return res.status(404).json({ message: "Order Item not found" });
     }
 
-    orderItem.vendor_status = vendor_status;
+    if (authority === "vendor" && vendor_status > 3) {
+      return res
+        .status(403)
+        .json({ message: "Vendors can only update status up to 'shipped'" });
+    } else if (authority === "admin" && vendor_status <= 3) {
+      return res.status(403).json({
+        message: "Admins can only update status from 'shipped' onwards",
+      });
+    }
+
+    switch (vendor_status) {
+      case 2:
+        orderItem.vendor_status = 2;
+        orderItem.processing = new Date();
+        break;
+      case 3:
+        orderItem.vendor_status = 3;
+        orderItem.shipped = new Date();
+        break;
+      case 4:
+        orderItem.vendor_status = 4;
+        orderItem.out_for_delivery = new Date();
+        break;
+      case 5:
+        orderItem.vendor_status = 5;
+        orderItem.delivered = new Date();
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid vendor status" });
+    }
     await orderItem.save();
 
     const order = await Order.findByPk(order_id, {
-      include: [{ model: OrderItem, as: 'orderItems' }],
+      include: [{ model: OrderItem, as: "orderItems" }],
     });
 
-    const hasProcessing = order.orderItems.some(item => item.vendor_status === 'processing');
-    const allShipped = order.orderItems.every(item => item.vendor_status === 'shipped');
-    const allOutForDelivery = order.orderItems.every(item => item.vendor_status === 'out for delivery');
-    const allDelivered = order.orderItems.every(item => item.vendor_status === 'delivered');
+    if (authority === "vendor") {
+      const hasProcessing = order.orderItems.some(
+        (item) => item.vendor_status === 2
+      );
+      const hasShipped = order.orderItems.some(
+        (item) => item.vendor_status === 3
+      );
 
-    if (hasProcessing) {
-      order.status = 'processing';
-    } else if (allShipped) {
-      order.status = 'shipped';
-    } else if (allOutForDelivery) {
-      order.status = 'out for delivery';
-    } else if (allDelivered) {
-      order.status = 'delivered';
-    } else {
-      order.status = 'placed'; 
+      if (hasProcessing) {
+        order.status = 2;
+        order.processing = new Date();
+      } else if (hasShipped) {
+        order.status = 2;
+        order.shipped = new Date();
+      } else {
+        order.status = 1;
+      }
+    } else if (authority === "admin") {
+      const hasOutForDelivery = order.orderItems.some(
+        (item) => item.vendor_status === 4
+      );
+      const hasDelivered = order.orderItems.some(
+        (item) => item.vendor_status === 5
+      );
+
+      if (hasOutForDelivery) {
+        order.status = 4;
+        order.out_for_delivery = new Date();git
+      } else if (hasDelivered) {
+        order.status = 5;
+        order.delivered = new Date();
+      }
     }
 
     await order.save();
@@ -963,6 +1011,7 @@ const updateOrderItemStatus = async (req, res) => {
   }
 };
 
+module.exports = { updateOrderItemStatus };
 
 const sendOrderConfirmationEmail = async (userDetails, order) => {
   const htmlContent = `

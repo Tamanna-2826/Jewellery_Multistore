@@ -47,9 +47,6 @@ module.exports = {
       vendor_price: {
         type: Sequelize.DECIMAL
       },
-      stock_quantity: {
-        type: Sequelize.INTEGER
-      },
       clasp_type: {
         type: Sequelize.STRING
       },

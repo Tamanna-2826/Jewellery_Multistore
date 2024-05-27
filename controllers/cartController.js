@@ -27,10 +27,6 @@ const addToCart = async (req, res) => {
       return res.status(404).json({ error: "Product or User not found" });
     }
 
-    if (quantity <= 0 || quantity > product.stock_quantity) {
-      return res.status(400).json({ error: "Invalid quantity" });
-    }
-
     const category = product.category;
 
     if (

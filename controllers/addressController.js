@@ -64,12 +64,14 @@ const addBillingAddress = async (req, res) => {
       },
     });
 
+
     if (!shippingAddressExists) {
       return res.status(400).json({
         error:
           "User must have at least one shipping address before adding a billing address",
       });
     }
+    await shippingAddressExists.update({ is_default: false });
 
     const newAddress = await Address.create({
       user_id,

@@ -220,12 +220,13 @@ const handleStripeWebhook = async (req, res) => {
           igst,
           sub_total: sub_total_item,
           total_price,
-          vendor_status: "order received",
+          vendor_status:1,
+          order_received:new Date(),
         });
       }
 
       const gstAmount = (subtotal * IGST_RATE) / 100;
-      const total_amount = subtotal + gstAmount;
+      const total_amount = (subtotal + gstAmount).toFixed(2);
 
       const order = await Order.create({
         order_id,
@@ -234,7 +235,9 @@ const handleStripeWebhook = async (req, res) => {
         subtotal,
         total_amount,
         address_id: shippingAddress.address_id,
-        status: "placed",
+        status:1,
+        order_placed:new Date(),
+
       });
       const paymentIntent = await stripe.paymentIntents.retrieve(
         session.payment_intent,

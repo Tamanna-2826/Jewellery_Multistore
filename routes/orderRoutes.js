@@ -9,7 +9,7 @@ router.get('/admin/orders', orderController.getBasicOrderDetailsForAdmin);
 router.get('/admin/orders/:order_id', orderController.getAdminDetailedOrderDetails); 
 router.get('/vendors/:vendor_id/orders', orderController.getBasicOrderDetailsForVendor);
 router.get('/:order_id/vendors/:vendor_id', orderController.getVendorDetailedOrderDetails);
-router.put('/orders/:order_id/orderItems/:orderItem_id/status', orderController.updateOrderItemStatus);
+router.put('/:order_id/orderItems/:orderItem_id/status', orderController.updateOrderItemStatus);
 
 
 module.exports = router;

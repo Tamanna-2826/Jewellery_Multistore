@@ -193,7 +193,7 @@ const vendorDeactivation = async (req, res) => {
       return res.status(404).json({ error: "Vendor not found" });
     }
     await Product.destroy({
-      where: { vendor_id}
+      where: { vendor_id }
     });
 
     await vendor.update({ active_status: "deactive" });
