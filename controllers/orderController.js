@@ -940,13 +940,13 @@ const updateVendorOrderItemStatus = async (req, res) => {
   const { vendor_status } = req.body;
   const { authority } = req.decodedToken;
 
-  if (authority !== 'vendor') {
+  if (authority !== "vendor") {
     return res.status(403).json({ message: "Access denied" });
   }
 
   try {
     const orderItem = await OrderItem.findOne({
-      where: { order_id, id: orderItem_id },
+      where: { order_id, orderItem_id: orderItem_id },
     });
 
     if (!orderItem) {
@@ -954,7 +954,9 @@ const updateVendorOrderItemStatus = async (req, res) => {
     }
 
     if (vendor_status > 3) {
-      return res.status(403).json({ message: "Vendors can only update status up to 'shipped'" });
+      return res
+        .status(403)
+        .json({ message: "Vendors can only update status up to 'shipped'" });
     }
 
     switch (vendor_status) {
@@ -976,13 +978,17 @@ const updateVendorOrderItemStatus = async (req, res) => {
       include: [{ model: OrderItem, as: "orderItems" }],
     });
 
-    const allShipped = order.orderItems.every(item => item.vendor_status === 3);
+    const allShipped = order.orderItems.every(
+      (item) => item.vendor_status === 3
+    );
 
     if (allShipped) {
       order.status = 3;
       order.shipped = new Date();
     } else {
-      const hasProcessing = order.orderItems.some(item => item.vendor_status === 2);
+      const hasProcessing = order.orderItems.some(
+        (item) => item.vendor_status === 2
+      );
 
       if (hasProcessing) {
         order.status = 2;
@@ -998,12 +1004,13 @@ const updateVendorOrderItemStatus = async (req, res) => {
     res.status(500).json({ message: "Failed to update vendor status" });
   }
 };
+
 const updateAdminOrderStatus = async (req, res) => {
   const { order_id } = req.params;
   const { status } = req.body;
   const { authority } = req.decodedToken;
 
-  if (authority !== 'admin') {
+  if (authority !== "admin") {
     return res.status(403).json({ message: "Access denied" });
   }
 
@@ -1016,30 +1023,84 @@ const updateAdminOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    if (status < 3) { 
-      return res.status(403).json({ message: "Admins can only update status from 'shipped' onwards" });
+    if (status < 3) {
+      return res.status(403).json({
+        message: "Admins can only update status from 'shipped' onwards",
+      });
     }
 
-    await sequelize.transaction(async (t) => { 
+    if (status === 4) {
+      order.status = 4;
+      order.out_for_delivery = new Date();
+      await order.save();
       await OrderItem.update(
-        { vendor_status: status },
-        { where: { order_id }, transaction: t }
+        { vendor_status: 4, out_for_delivery: new Date() },
+        { where: { order_id } }
       );
-
+    } else if (status === 5) {
+      order.status = 5;
+      order.delivered = new Date();
+      await order.save();
+      await OrderItem.update(
+        { vendor_status: 5, delivered: new Date() },
+        { where: { order_id } }
+      );
+    } else {
       order.status = status;
-      if (status === 4) {
-        order.out_for_delivery = new Date();
-      } else if (status === 5) {
-        order.delivered = new Date();
-      }
-
-      await order.save({ transaction: t });
-    });
+      await order.save();
+    }
 
     res.status(200).json({ message: "Order status updated successfully" });
   } catch (error) {
     console.error("Error updating order status:", error);
     res.status(500).json({ message: "Failed to update order status" });
+  }
+};
+
+const getStatusForAdmin = async (req, res) => {
+  const { order_id } = req.params;
+
+  try {
+    const order = await Order.findOne({
+      where: { order_id },
+      attributes: [
+        "status",
+        "order_placed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+      ],
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error("Error fetching order status:", error);
+    res.status(500).json({ message: "Failed to fetch order status" });
+  }
+};
+
+const getStatusForVendor = async (req, res) => {
+  const { orderItem_id } = req.params;
+
+  try {
+    const orderItem = await OrderItem.findOne({
+      where: { orderItem_id },
+      attributes: ["vendor_status", "order_received","processing","shipped", "out_for_delivery", "delivered"],
+    });
+
+    if (!orderItem) {
+      return res.status(404).json({ message: "Order Item not found" });
+    }
+
+    res.json(orderItem);
+  } catch (error) {
+    console.error("Error fetching order item status:", error);
+    res.status(500).json({ message: "Failed to fetch order item status" });
   }
 };
 
@@ -1053,4 +1114,6 @@ module.exports = {
   getVendorDetailedOrderDetails,
   updateVendorOrderItemStatus,
   updateAdminOrderStatus,
+  getStatusForAdmin,
+  getStatusForVendor,
 };

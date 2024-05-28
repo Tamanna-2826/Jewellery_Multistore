@@ -1,13 +1,15 @@
-const { Vendor, User,Product } = require("../models");
+const { Vendor, User, Product, VendorKYC } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+const cloudinary = require("../config/cloudinaryConfig");
 
 const generateRandomPassword = () => {
   const randomBytes = crypto.randomBytes(5);
   const password = randomBytes.toString("hex");
   return password;
 };
+
 
 const vendorRegistration = async (req, res) => {
   try {
@@ -23,7 +25,12 @@ const vendorRegistration = async (req, res) => {
       state_id,
       address,
       company_name,
-      active_status,
+      business_reg_no,
+      aadhar_no,
+      pan_no,
+      bank_acc_no,
+      bank_name,
+      ifsc_code,
     } = req.body;
 
     const existingEmailUser = await User.findOne({ where: { email } });
@@ -55,7 +62,7 @@ const vendorRegistration = async (req, res) => {
         .status(400)
         .json({ message: "Phone number already exists as a vendor" });
     }
-
+    console.log("REQ BODY : ", req.body);
     const newVendor = await Vendor.create({
       first_name,
       last_name,
@@ -71,9 +78,47 @@ const vendorRegistration = async (req, res) => {
       active_status: "pending",
     });
 
+    // const aadharCopyPublicId = req.files.aadhar_copy? req.files.aadhar_copy[0].path: null;
+    // const panCopyPublicId = req.files.pan_copy ? req.files.pan_copy[0].path: null;
+    // const addProfPublicId = req.files.add_prof? req.files.add_prof[0].path : null;
+
+     // Handle file uploads and store public IDs
+     let aadharCopyPublicId = null;
+     if (req.files && req.files.aadhar_copy) {
+       aadharCopyPublicId = req.files.aadhar_copy[0].path;
+     }
+ 
+     let panCopyPublicId = null;
+     if (req.files && req.files.pan_copy) {
+       panCopyPublicId = req.files.pan_copy[0].path;
+     }
+ 
+     let addProfPublicId = null;
+     if (req.files && req.files.add_prof) {
+       addProfPublicId = req.files.add_prof[0].path;
+     }
+ 
+
+    const newVendorKYC = await VendorKYC.create({
+      vendor_id: newVendor.vendor_id,
+      business_reg_no,
+      aadhar_no,
+      aadhar_copy: aadharCopyPublicId,
+      pan_no,
+      pan_copy: panCopyPublicId,
+      add_prof: addProfPublicId,
+      bank_acc_no,
+      bank_name,
+      ifsc_code,
+    });
+
     res
       .status(200)
-      .json({ message: "Vendor registered successfully", newVendor });
+      .json({
+        message: "Vendor registered successfully",
+        newVendor,
+        newVendorKYC,
+      });
   } catch (error) {
     console.error("Error registering vendor:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -186,14 +231,14 @@ const vendorDeactivation = async (req, res) => {
   const { vendor_id } = req.params;
   try {
     const vendor = await Vendor.findOne({
-      where: {vendor_id },
+      where: { vendor_id },
     });
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
     }
     await Product.destroy({
-      where: { vendor_id }
+      where: { vendor_id },
     });
 
     await vendor.update({ active_status: "deactive" });
@@ -284,7 +329,6 @@ const vendorDeactivation = async (req, res) => {
   }
 };
 
-
 const getPendingVendors = async (req, res) => {
   try {
     const pendingVendors = await Vendor.findAll({
@@ -349,7 +393,10 @@ const updateVendorPassword = async (req, res) => {
 
     await vendor.update({ password: hashedPassword });
 
-    res.json({ success: true, message: "Vendor password updated successfully" });
+    res.json({
+      success: true,
+      message: "Vendor password updated successfully",
+    });
   } catch (error) {
     console.error("Error updating vendor password:", error.message);
     res.status(500).json({ error: "Internal Server Error" });
@@ -363,5 +410,5 @@ module.exports = {
   getactiveVendors,
   vendorDeactivation,
   getdeactiveVendors,
-  updateVendorPassword
+  updateVendorPassword,
 };

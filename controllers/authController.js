@@ -119,8 +119,7 @@ const vendorLogin = async (req, res) => {
   const getUserProfile = async (req, res) => {
     try {
       const userId = req.decodedToken.id;
-      console.log("TOKEN USER ID : ", userId);
-      console.log("DECODED TOKEN : ", req.decodedToken);
+      
       
       const user = await User.findOne({ where: { user_id: userId } });
   
