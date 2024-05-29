@@ -24,7 +24,6 @@ const addProduct = async (req, res) => {
       weight,
     } = req.body;
 
-    console.log("CAT ID : ", req.body.category_id);
 
     const productImages = [];
 

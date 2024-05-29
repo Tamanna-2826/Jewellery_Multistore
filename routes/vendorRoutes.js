@@ -18,24 +18,13 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-router.post(
-  "/register",
-  upload.fields([
-    { name: "aadhar_copy", maxCount: 1 },
-    { name: "pan_copy", maxCount: 1 },
-    { name: "add_prof", maxCount: 1 },
-  ]),
-  vendorController.vendorRegistration
-);
-
+router.post("/register",upload.fields([{ name: "aadhar_copy", maxCount: 1 },{ name: "pan_copy", maxCount: 1 },{ name: "add_prof", maxCount: 1 },]),vendorController.vendorRegistration);
+router.get('/getKYCDetails/:vendor_id', vendorController.getVendorDetails);
 router.get("/pending", vendorController.getPendingVendors);
 router.put("/activate/:vendor_id", vendorController.vendorActivation);
 router.get("/active", vendorController.getactiveVendors);
 router.put("/deactivate/:vendor_id", vendorController.vendorDeactivation);
 router.get("/deactive", vendorController.getdeactiveVendors);
-router.put(
-  "/update-password/:vendor_id",
-  vendorController.updateVendorPassword
-);
+router.put("/update-password/:vendor_id",vendorController.updateVendorPassword);
 
 module.exports = router;

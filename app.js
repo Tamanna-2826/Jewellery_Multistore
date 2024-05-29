@@ -16,24 +16,13 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+
 
 const app = express();
 
-// // Timeout middleware
-// app.use(timeout.handler({
-//   timeout: 120000, // Timeout duration in milliseconds (e.g., 2 minutes)
-//   onTimeout: (req, res) => {
-//     res.status(503).send('Request Timeout');
-//   },
-// }));
-
 app.use(cors());
-// app.use(express.json());
 app.use(express.json({ verify: (req, res, buf) => req.rawBody = buf }));
-
-
-// app.use(bodyParser.raw({ type: 'application/json ' }));
-
 
 app.use('/auth', authRoutes);
 app.use('/location', locationRoutes);
@@ -45,6 +34,8 @@ app.use('/wishlist', wishlistRoutes);
 app.use('/address', addressRoutes);
 app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
+app.use('/reviews', reviewRoutes);
+
 
 sequelize.sync()
   .then(() => {

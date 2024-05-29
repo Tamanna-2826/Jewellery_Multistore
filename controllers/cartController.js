@@ -11,6 +11,8 @@ const {
 const addToCart = async (req, res) => {
   const { user_id, product_id, quantity, price, size } = req.body;
 
+  console.log("REQ BODY : ",req.body.product_id);
+
   try {
     const product = await Product.findByPk(product_id, {
       include: [

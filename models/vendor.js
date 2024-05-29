@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE'
       });
+      Vendor.hasOne(models.VendorKYC, {
+        foreignKey: 'vendor_id',
+        as: 'kycDetails'
+      });
     }
   }
   Vendor.init({

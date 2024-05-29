@@ -540,6 +540,7 @@ const getDetailedOrderDetails = async (req, res) => {
             "igst",
             "sub_total",
             "total_price",
+            "vendor_status"
           ],
           include: [
             {
@@ -887,6 +888,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
             "sgst",
             "igst",
             "sub_total",
+            "total_price",
             "order_received",
             "processing",
             "shipped",

@@ -78,10 +78,6 @@ const vendorRegistration = async (req, res) => {
       active_status: "pending",
     });
 
-    // const aadharCopyPublicId = req.files.aadhar_copy? req.files.aadhar_copy[0].path: null;
-    // const panCopyPublicId = req.files.pan_copy ? req.files.pan_copy[0].path: null;
-    // const addProfPublicId = req.files.add_prof? req.files.add_prof[0].path : null;
-
      // Handle file uploads and store public IDs
      let aadharCopyPublicId = null;
      if (req.files && req.files.aadhar_copy) {
@@ -112,16 +108,37 @@ const vendorRegistration = async (req, res) => {
       ifsc_code,
     });
 
-    res
-      .status(200)
-      .json({
-        message: "Vendor registered successfully",
-        newVendor,
-        newVendorKYC,
+    res.status(200).json({ message: "Vendor registered successfully", newVendor, newVendorKYC,
       });
   } catch (error) {
     console.error("Error registering vendor:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getVendorDetails = async (req, res) => {
+  try {
+    console.log("INSIDE GET VENDOR DETAILS ");
+    const { vendor_id } = req.params;
+
+    const vendorDetails = await Vendor.findOne({
+      where: { vendor_id },
+      include: [
+        {
+          model: VendorKYC,
+          as: 'kycDetails',
+        },
+      ],
+    });
+
+    if (!vendorDetails) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    res.status(200).json({ vendor: vendorDetails });
+  } catch (error) {
+    console.error('Error fetching vendor details:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -411,4 +428,5 @@ module.exports = {
   vendorDeactivation,
   getdeactiveVendors,
   updateVendorPassword,
+  getVendorDetails
 };
