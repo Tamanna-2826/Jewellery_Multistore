@@ -31,7 +31,7 @@ exports.getProductReviews = async (req, res) => {
           model: User,
           as: "user",
           attributes: ["first_name", "last_name"],
-        },
+        },      
       ],
     });
     res.status(200).json({ success: true, reviews });
