@@ -9,6 +9,8 @@ const {
   Address,
   State,
   Vendor,
+  Coupon
+
 } = require("../models");
 
 const generateOrderTrackingId = () => {
@@ -31,7 +33,6 @@ const createCheckoutSession = async (req, res) => {
   const { user_id } = req.body;
 
   try {
-
     const cart = await Cart.findOne({
       where: { user_id },
       include: [
@@ -74,6 +75,7 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         order_id: generateOrderTrackingId(),
         user_id,
+        coupon_code: coupon_code || null, // Include coupon code in metadata
       },
     });
 
@@ -106,7 +108,6 @@ const handleStripeWebhook = async (req, res) => {
     const { user_id, order_id } = session.metadata;
 
     try {
-
       const shippingAddress = await Address.findOne({
         where: {
           user_id,
@@ -156,6 +157,39 @@ const handleStripeWebhook = async (req, res) => {
       if (!cart || cart.cartItems.length === 0) {
         console.error("Cart is empty");
         return res.status(400).send("Cart is empty");
+      }
+
+      const coupon = await Coupon.findOne({
+        where: { code: session.metadata.coupon_code },
+        include: [
+          {
+            model: Vendor,
+            as: "vendor",
+            attributes: ["vendor_id"],
+          },
+        ],
+      });
+
+      let discountValue = 0;
+      let discountedAmount = 0;
+      if (coupon) {
+        if (coupon.maximum_uses && coupon.maximum_uses <= 0) {
+          console.error("Coupon has reached the maximum allowed uses");
+          return res.status(400).send("Coupon has reached the maximum allowed uses");
+        }
+
+        if (coupon.discount_type === "percentage") {
+          discountValue = (subtotal * coupon.discount_value) / 100;
+        } else {
+          discountValue = coupon.discount_value;
+        }
+
+        discountedAmount = subtotal - discountValue;
+
+        if (coupon.maximum_uses) {
+          coupon.maximum_uses--;
+          await coupon.save();
+        }
       }
 
       const cartItems = cart.cartItems;
@@ -220,33 +254,37 @@ const handleStripeWebhook = async (req, res) => {
           igst,
           sub_total: sub_total_item,
           total_price,
-          vendor_status:1,
-          order_received:new Date(),
+          vendor_status: 1,
+          order_received: new Date(),
         });
       }
 
       const gstAmount = (subtotal * IGST_RATE) / 100;
-      const total_amount = (subtotal + gstAmount).toFixed(2);
+      // const total_amount = (subtotal + gstAmount).toFixed(2);
+      const total_amount = (discountedAmount + gstAmount).toFixed(2);
+
 
       const order = await Order.create({
         order_id,
         user_id,
         order_date: new Date(),
         subtotal,
+        coupon_id: coupon ? coupon.coupon_id : null,
+        discount_value: discountValue,
+        discounted_amount: discountedAmount,
         total_amount,
         address_id: shippingAddress.address_id,
-        status:1,
-        order_placed:new Date(),
-
+        status: 1,
+        order_placed: new Date(),
       });
       const paymentIntent = await stripe.paymentIntents.retrieve(
-        session.payment_intent,
+        session.payment_intent
       );
 
       await Payment.create({
         order_id: order.order_id,
         currency: session.currency,
-        payment_method_name:'card',
+        payment_method_name: "card",
         amount: total_amount,
         payment_date: new Date(paymentIntent.created * 1000),
         status: session.status,

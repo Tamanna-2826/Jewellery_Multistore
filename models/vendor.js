@@ -24,6 +24,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'vendor_id',
         as: 'kycDetails'
       });
+      Vendor.hasMany(models.Coupon, {
+        foreignKey: 'vendor_id',
+        as: 'coupons'
+      });
     }
   }
   Vendor.init({

@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
 
     static associate(models) {
       Coupon.hasOne(models.Order, { foreignKey: 'coupon_id', as: 'order', onDelete: "SET NULL" , onUpdate:"SET NULL"});
+      Coupon.belongsTo(models.Vendor, { foreignKey: 'vendor_id', as: 'vendor', onDelete: "SET NULL" });
+
     }
   }
   
@@ -36,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
     discount_value: {
       type: DataTypes.DECIMAL,
       allowNull: false
+      
     },
     minimum_amount: {
       type: DataTypes.DECIMAL,
