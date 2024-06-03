@@ -10,4 +10,7 @@ router.put('/:coupon_id', couponController.updateCoupon);
 
 router.delete('/:coupon_id', couponController.deleteCoupon);
 
+router.get('/carts/:cart_id/applicable-coupons', couponController.getApplicableCoupons);
+
+
 module.exports = router;

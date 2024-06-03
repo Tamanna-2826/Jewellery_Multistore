@@ -9,9 +9,9 @@ const {
   Address,
   State,
   Vendor,
-  Coupon
-
+  Coupon,
 } = require("../models");
+const { sendEmail } = require("../helpers/emailHelper");
 
 const generateOrderTrackingId = () => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -105,7 +105,7 @@ const handleStripeWebhook = async (req, res) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { user_id, order_id } = session.metadata;
+    const { user_id, order_id, coupon_code } = session.metadata;
 
     try {
       const shippingAddress = await Address.findOne({
@@ -118,6 +118,11 @@ const handleStripeWebhook = async (req, res) => {
             model: State,
             as: "state",
             attributes: ["state_name"],
+          },
+          {
+            model: City,
+            as: "city",
+            attributes: ["city_name"],
           },
         ],
       });
@@ -160,7 +165,7 @@ const handleStripeWebhook = async (req, res) => {
       }
 
       const coupon = await Coupon.findOne({
-        where: { code: session.metadata.coupon_code },
+        where: { code: coupon_code },
         include: [
           {
             model: Vendor,
@@ -172,26 +177,6 @@ const handleStripeWebhook = async (req, res) => {
 
       let discountValue = 0;
       let discountedAmount = 0;
-      if (coupon) {
-        if (coupon.maximum_uses && coupon.maximum_uses <= 0) {
-          console.error("Coupon has reached the maximum allowed uses");
-          return res.status(400).send("Coupon has reached the maximum allowed uses");
-        }
-
-        if (coupon.discount_type === "percentage") {
-          discountValue = (subtotal * coupon.discount_value) / 100;
-        } else {
-          discountValue = coupon.discount_value;
-        }
-
-        discountedAmount = subtotal - discountValue;
-
-        if (coupon.maximum_uses) {
-          coupon.maximum_uses--;
-          await coupon.save();
-        }
-      }
-
       const cartItems = cart.cartItems;
 
       for (const item of cartItems) {
@@ -236,11 +221,6 @@ const handleStripeWebhook = async (req, res) => {
           igst = 3;
         }
 
-        const productImage = product_temp.p_images[0];
-
-        item.product_name = product_temp.product_name;
-        item.product_image = productImage;
-
         const gstAmt = (sub_total_item * IGST_RATE) / 100;
         const total_price = sub_total_item + gstAmt;
 
@@ -259,10 +239,32 @@ const handleStripeWebhook = async (req, res) => {
         });
       }
 
-      const gstAmount = (subtotal * IGST_RATE) / 100;
-      // const total_amount = (subtotal + gstAmount).toFixed(2);
-      const total_amount = (discountedAmount + gstAmount).toFixed(2);
+      if (coupon) {
+        if (coupon.maximum_uses && coupon.maximum_uses <= 0) {
+          console.error("Coupon has reached the maximum allowed uses");
+          return res
+            .status(400)
+            .send("Coupon has reached the maximum allowed uses");
+        }
 
+        if (coupon.discount_type === "percentage") {
+          discountValue = (subtotal * coupon.discount_value) / 100;
+        } else {
+          discountValue = coupon.discount_value;
+        }
+
+        discountedAmount = subtotal - discountValue;
+
+        if (coupon.maximum_uses) {
+          coupon.maximum_uses--;
+          await coupon.save();
+        }
+      } else {
+        discountedAmount = subtotal;
+      }
+
+      const gstAmount = (discountedAmount * IGST_RATE) / 100;
+      const total_amount = (discountedAmount + gstAmount).toFixed(2);
 
       const order = await Order.create({
         order_id,
@@ -277,6 +279,7 @@ const handleStripeWebhook = async (req, res) => {
         status: 1,
         order_placed: new Date(),
       });
+
       const paymentIntent = await stripe.paymentIntents.retrieve(
         session.payment_intent
       );
@@ -296,6 +299,159 @@ const handleStripeWebhook = async (req, res) => {
         force: false,
       });
 
+      // Send emails to customer and vendors
+      const customerDetails = await User.findByPk(user_id);
+
+      const customerHtmlContent = `
+      <html>
+          <head>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      padding: 10px;
+                      width: 100%;
+                      height: 100vh;
+                      display: flex;
+                  }
+                  .container {
+                      max-width: 600px;
+                      padding: 10px;
+                      border-radius: 10px;
+                      background-color: #f5f5f5;
+                  }
+                  .header {
+                      color: black;
+                      padding: 10px;
+                  }
+                  h1 {
+                      text-align: center;
+                  }
+                  .content {
+                      padding: 20px;
+                  }
+                  .footer {
+                      color: black;
+                      text-align: center;
+                      padding: 10px;
+                      background-color: #d7d3d3;
+                      border-radius: 3px;
+                  }
+              </style>
+          </head>
+          <body>
+          <div class="container">
+            <div class="header">
+             <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+              <h1>Order Request Received ! </h1>
+              Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
+              Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
+              Your order has been received with the following details:<br>
+              Order ID: ${order.order_id} <br>
+              Order Date: ${order.order_date}<br>
+              Total Amount: ${total_amount}<br>
+              Your order will be processed as soon as possible. You will receive a order confirmation email once your order has been confirmed.
+               <br><br>
+              Thank you for choosing Nishkar! <br><br>
+              Best regards,<br>
+               The Nishkar Team
+              </div>
+              <div class="footer">
+                  <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+              </div>
+              </div>
+            </body>
+          </html>
+      `;
+      sendEmail(
+        customerDetails.email,
+        "Order Request Received",
+        customerHtmlContent
+      );
+
+      for (const item of cartItems) {
+        const product = await Product.findOne({
+          where: { product_id: item.product_id },
+          include: [
+            {
+              model: Vendor,
+              as: "vendor",
+              attributes: ["first_name", "email"],
+              include: [
+                {
+                  model: State,
+                  as: "state",
+                  attributes: ["state_name"],
+                },
+              ],
+            },
+          ],
+        });
+
+        const vendorHtmlContent = `
+        <html>
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 10px;
+                        width: 100%;
+                        height: 100vh;
+                        display: flex;
+                    }
+                    .container {
+                        max-width: 600px;
+                        padding: 10px;
+                        border-radius: 10px;
+                        background-color: #f5f5f5;
+                    }
+                    .header {
+                        color: black;
+                        padding: 10px;
+                    }
+                    h1 {
+                        text-align: center;
+                    }
+                    .content {
+                        padding: 20px;
+                    }
+                    .footer {
+                        color: black;
+                        text-align: center;
+                        padding: 10px;
+                        background-color: #d7d3d3;
+                        border-radius: 3px;
+                    }
+                </style>
+            </head>
+            <body>
+            <div class="container">
+              <div class="header">
+               <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+                <h1>New Order Received</h1>
+                Dear ${product.vendor.first_name},<br><br>
+                Congratulations! You have received a new order on Nishkar.<br>
+                Here are the details:<br>
+                Customer Name: ${customerDetails.first_name} ${customerDetails.last_name}<br>
+                Email: ${customerDetails.email}<br>
+                Phone: ${customerDetails.phone_no}<br>
+                Product name : ${product.product_name}<br> <br>
+                We wish you great success with this new order! <br><br>
+                Best regards,<br>
+                The Nishkar Team
+                </div>
+                <div class="footer">
+                    <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+                </div>
+                </div>
+              </body>
+            </html>
+        `;
+        sendEmail(
+          product.vendor.email,
+          "New Order received",
+          vendorHtmlContent
+        );
+      }
       return res
         .status(200)
         .json({ message: "Payment completed Successfully" });

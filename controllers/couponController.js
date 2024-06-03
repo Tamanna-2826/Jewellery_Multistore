@@ -1,4 +1,4 @@
-const { Coupon, Vendor } = require("../models");
+const { Coupon, Vendor, Cart, CartItem  } = require("../models");
 
 const createCoupon = async (req, res) => {
     const { vendor_id, code, discount_type, discount_value, minimum_amount, maximum_uses, expiry_date } = req.body;
@@ -96,9 +96,74 @@ const deleteCoupon = async (req, res) => {
   }
 };
 
+//Get applicable coupons 
+const getApplicableCoupons = async (req, res) => {
+  const { cart_id } = req.params;
+
+  try {
+    // Fetch the cart data with associated products and vendors
+    const cart = await Cart.findByPk(cart_id, {
+      include: [
+        {
+          model: CartItem,
+          as: 'cartItems',
+          include: [
+            {
+              model: Product,
+              as: 'product',
+              attributes: ['price'],
+              include: [
+                {
+                  model: Vendor,
+                  as: 'vendor',
+                  attributes: ['vendor_id']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
+
+    const vendorIds = Array.from(new Set(cart.cartItems.flatMap(item => item.product.vendor.vendor_id)));
+
+    const applicableCoupons = await Coupon.findAll({
+      where: {
+        vendor_id: { [Op.in]: vendorIds }, 
+        minimum_amount: {
+          [Op.lte]: totalAmount
+        },
+        maximum_uses: {
+          [Op.gt]: 0 
+        },
+        expiry_date: {
+          [Op.gte]: new Date() 
+        }
+      },
+      include: [
+        {
+          model: Vendor,
+          as: 'vendor',
+          attributes: ['first_name', 'last_name', 'email']
+        }
+      ]
+    });
+
+    res.json(applicableCoupons);
+  } catch (error) {
+    console.error('Error getting applicable coupons:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   createCoupon,
   getCouponsForVendor,
   updateCoupon,
   deleteCoupon,
+  getApplicableCoupons
 };

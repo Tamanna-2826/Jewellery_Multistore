@@ -244,7 +244,7 @@ const sendOrderEmails = async (
             Dear ${customerDetails.first_name} ${
     customerDetails.last_name
   },<br><br>
-            Thank you for your order on Sarvadhi Solutions! We're excited to process your purchase and have it delivered to you soon.<br><br>
+            Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
   
             Your order has been received with the following details:<br>
             Order ID: ${newOrder.order_id} <br>
@@ -540,7 +540,7 @@ const getDetailedOrderDetails = async (req, res) => {
             "igst",
             "sub_total",
             "total_price",
-            "vendor_status"
+            "vendor_status",
           ],
           include: [
             {
@@ -1047,6 +1047,142 @@ const updateAdminOrderStatus = async (req, res) => {
         { vendor_status: 5, delivered: new Date() },
         { where: { order_id } }
       );
+
+      // Send email to user
+      const userEmail = order.user.email;
+      const userSubject = "Your order has been delivered!";
+      const userHtml = `
+      <html>
+      <head>
+          <style>
+              body {
+                  font-family: Arial, sans-serif;
+                  padding: 10px;
+                  width: 100%;
+                  height: 100vh;
+                  display: flex;
+             
+              }
+ 
+              .container {
+                  max-width: 600px;
+                  padding: 10px;
+                  border-radius: 10px;
+                  background-color: #f5f5f5;
+              }
+ 
+              .header {
+                  color: black;
+                  padding: 10px;
+              }
+              h1{
+                text-align: center;
+              }
+              .content {
+                  padding: 20px;
+              }
+ 
+              .footer {
+                  color: black;
+                  text-align: center;
+                  padding: 10px;
+                  background-color: #d7d3d3; /* Light grey background color */
+                  border-radius: 3px;
+ 
+              }
+          </style>
+      </head>
+ 
+      <body>
+      <div class="container">
+        <div class="header">
+         <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+            <h1>Order Request Received ! </h1>
+         <h1>Order Delivered</h1>
+         <p>Dear ${order.user.first_name},</p>
+         <p>Your order #${order.order_id} has been successfully delivered. Thank you for shopping with us!</p>
+         <p>Best regards,<br>Nishkar Team</p>
+         </div>
+         <div class="footer">
+             <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+         </div>
+         </div>
+       </body>
+     </html>
+       `;
+      sendEmail(userEmail, userSubject, userHtml);
+
+      //email to vendor
+      for (const item of order.orderItems) {
+        const vendorEmail = item.vendor.email;
+        const vendorSubject = "Order delivered - Product sold";
+        const vendorHtml = `
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 10px;
+                    width: 100%;
+                    height: 100vh;
+                    display: flex;
+               
+                }
+   
+                .container {
+                    max-width: 600px;
+                    padding: 10px;
+                    border-radius: 10px;
+                    background-color: #f5f5f5;
+                }
+   
+                .header {
+                    color: black;
+                    padding: 10px;
+                }
+                h1{
+                  text-align: center;
+                }
+                .content {
+                    padding: 20px;
+                }
+   
+                .footer {
+                    color: black;
+                    text-align: center;
+                    padding: 10px;
+                    background-color: #d7d3d3; /* Light grey background color */
+                    border-radius: 3px;
+   
+                }
+            </style>
+        </head>
+   
+        <body>
+        <div class="container">
+          <div class="header">
+           <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2> 
+          <h1>Product Delivered</h1>
+          <p>Hello ${item.vendor.name},</p>
+          <p>The product "${item.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>
+          <p>Order Details:</p>
+          <ul>
+            <li>Product: ${item.product_name}</li>
+            <li>Quantity: ${item.quantity}</li>
+            <li>Total: $${item.total_price}</li>
+          </ul>
+          <p>Thank you for your business!</p>
+          <p>Best regards,<br>Your Store Team</p>
+          </div>
+          <div class="footer">
+              <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+          </div>
+          </div>
+        </body>
+      </html>
+        `;
+        sendEmail(vendorEmail, vendorSubject, vendorHtml);
+      }
     } else {
       order.status = status;
       await order.save();
@@ -1092,7 +1228,14 @@ const getStatusForVendor = async (req, res) => {
   try {
     const orderItem = await OrderItem.findOne({
       where: { orderItem_id },
-      attributes: ["vendor_status", "order_received","processing","shipped", "out_for_delivery", "delivered"],
+      attributes: [
+        "vendor_status",
+        "order_received",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+      ],
     });
 
     if (!orderItem) {
