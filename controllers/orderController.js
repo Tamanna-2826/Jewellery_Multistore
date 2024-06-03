@@ -1018,8 +1018,32 @@ const updateAdminOrderStatus = async (req, res) => {
 
   try {
     const order = await Order.findByPk(order_id, {
-      include: [{ model: OrderItem, as: "orderItems" }],
+      include: [
+        {
+          model: OrderItem,
+          as: "orderItems",
+          include: [
+            {
+              model: Product,
+              as: "product",
+              include: [
+                {
+                  model: Vendor,
+                  as: "vendor",
+                  attributes: ["first_name", "email"],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: User,
+          as: "user",
+          attributes: ["user_id", "first_name", "email"],
+        },
+      ],
     });
+    // console.log("ORDER : ", order);
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -1047,7 +1071,10 @@ const updateAdminOrderStatus = async (req, res) => {
         { vendor_status: 5, delivered: new Date() },
         { where: { order_id } }
       );
-
+      let productList = '';
+      order.orderItems.forEach(item => {
+        productList += `<li>${item.product.product_name} (Quantity: ${item.quantity})</li>`;
+      });
       // Send email to user
       const userEmail = order.user.email;
       const userSubject = "Your order has been delivered!";
@@ -1097,11 +1124,14 @@ const updateAdminOrderStatus = async (req, res) => {
       <div class="container">
         <div class="header">
          <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
-            <h1>Order Request Received ! </h1>
          <h1>Order Delivered</h1>
          <p>Dear ${order.user.first_name},</p>
          <p>Your order #${order.order_id} has been successfully delivered. Thank you for shopping with us!</p>
-         <p>Best regards,<br>Nishkar Team</p>
+         <p>Order Details:</p>
+         <ul>
+           ${productList}
+         </ul>
+         <p>Best regards,<br>Team Nishkar</p>
          </div>
          <div class="footer">
              <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
@@ -1114,7 +1144,8 @@ const updateAdminOrderStatus = async (req, res) => {
 
       //email to vendor
       for (const item of order.orderItems) {
-        const vendorEmail = item.vendor.email;
+
+        const vendorEmail = item.product.vendor.email;
         const vendorSubject = "Order delivered - Product sold";
         const vendorHtml = `
         <html>
@@ -1163,16 +1194,15 @@ const updateAdminOrderStatus = async (req, res) => {
           <div class="header">
            <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2> 
           <h1>Product Delivered</h1>
-          <p>Hello ${item.vendor.name},</p>
-          <p>The product "${item.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>
+          <p>Hello ${item.product.vendor.first_name},</p>
+          <p>The product "${item.product.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>
           <p>Order Details:</p>
           <ul>
-            <li>Product: ${item.product_name}</li>
+            <li>Product: ${item.product.product_name}</li>
             <li>Quantity: ${item.quantity}</li>
-            <li>Total: $${item.total_price}</li>
+            <li>Total: ${item.total_price}</li>
           </ul>
-          <p>Thank you for your business!</p>
-          <p>Best regards,<br>Your Store Team</p>
+          <p>Best regards,<br>Team Nishkar</p>
           </div>
           <div class="footer">
               <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>

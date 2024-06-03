@@ -1,4 +1,4 @@
-const { Coupon, Vendor, Cart, CartItem  } = require("../models");
+const { Coupon, Vendor, Cart, CartItem,Product  } = require("../models");
 
 const createCoupon = async (req, res) => {
     const { vendor_id, code, discount_type, discount_value, minimum_amount, maximum_uses, expiry_date } = req.body;
@@ -111,7 +111,7 @@ const getApplicableCoupons = async (req, res) => {
             {
               model: Product,
               as: 'product',
-              attributes: ['price'],
+              attributes: ['selling_price'],
               include: [
                 {
                   model: Vendor,

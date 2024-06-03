@@ -30,7 +30,7 @@ const generateOrderTrackingId = () => {
 const IGST_RATE = 3;
 
 const createCheckoutSession = async (req, res) => {
-  const { user_id } = req.body;
+  const { user_id,coupon_code  } = req.body;
 
   try {
     const cart = await Cart.findOne({
@@ -58,8 +58,7 @@ const createCheckoutSession = async (req, res) => {
           name: item.product.product_name,
           images: item.product.p_images,
         },
-        // unit_amount: item.product.selling_price * 100,
-        unit_amount: Math.round(item.product.selling_price * 1.03 * 100), // Adding 3% GST
+        unit_amount: Math.round(item.product.selling_price * 1.03 * 100), 
       },
       quantity: item.quantity,
     }));

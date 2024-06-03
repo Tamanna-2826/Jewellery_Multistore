@@ -18,6 +18,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const couponRouts =  require('./routes/couponRoutes');
+const customerRoutes =  require('./routes/customerRoutes');
+
 
 
 const app = express();
@@ -37,6 +39,8 @@ app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/coupon',couponRouts);
+app.use('/customer',customerRoutes);
+
 
 
 sequelize.sync()

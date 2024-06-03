@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
         onUpdate:"SET NULL"
       });
 
+      //Added
+      Product.hasMany(models.OrderItem, { foreignKey: 'product_id', as: 'orderItems' });
+
+
     }
   }
 

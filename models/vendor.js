@@ -28,6 +28,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'vendor_id',
         as: 'coupons'
       });
+
+      //added
+      Vendor.hasMany(models.Product, {
+        foreignKey: 'vendor_id',
+        as: 'products'
+      });
     }
   }
   Vendor.init({

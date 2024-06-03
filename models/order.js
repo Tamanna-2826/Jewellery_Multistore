@@ -10,9 +10,6 @@ module.exports = (sequelize, DataTypes) => {
       Order.belongsTo(models.Coupon, { foreignKey: 'coupon_id', as: 'discountCoupon', onUpdate: 'SET NULL', onDelete: 'SET NULL'  });
       Order.hasMany(models.OrderItem, { foreignKey: 'order_id', as: 'orderItems', onDelete: 'SET NULL' });
    
-      //ADDED
-      // Order.hasMany(models.Address, { as: 'addresses', foreignKey: 'order_id' }); 
-
 
     }
   }

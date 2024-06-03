@@ -135,6 +135,7 @@ const getCartItemsByUserId = async (req, res) => {
         {
           model: Cart,
           as: "cart",
+          attributes: ["cart_id"],
           where: {
             user_id: user_id,
           },
