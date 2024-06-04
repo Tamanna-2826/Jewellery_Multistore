@@ -8,6 +8,7 @@ const {
   Cart,
   Address,
   State,
+  City,
   Vendor,
   Coupon,
 } = require("../models");
@@ -104,7 +105,7 @@ const handleStripeWebhook = async (req, res) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { user_id, order_id, coupon_code } = session.metadata;
+    const { user_id, order_id} = session.metadata;
 
     try {
       const shippingAddress = await Address.findOne({

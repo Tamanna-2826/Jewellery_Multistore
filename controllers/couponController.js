@@ -1,4 +1,5 @@
 const { Coupon, Vendor, Cart, CartItem,Product  } = require("../models");
+const { Op } = require('sequelize'); 
 
 const createCoupon = async (req, res) => {
     const { vendor_id, code, discount_type, discount_value, minimum_amount, maximum_uses, expiry_date } = req.body;
@@ -96,12 +97,11 @@ const deleteCoupon = async (req, res) => {
   }
 };
 
-//Get applicable coupons 
 const getApplicableCoupons = async (req, res) => {
   const { cart_id } = req.params;
+  console.log("CART ID : ",cart_id);
 
   try {
-    // Fetch the cart data with associated products and vendors
     const cart = await Cart.findByPk(cart_id, {
       include: [
         {
@@ -129,13 +129,18 @@ const getApplicableCoupons = async (req, res) => {
       return res.status(404).json({ message: 'Cart not found' });
     }
 
-    const vendorIds = Array.from(new Set(cart.cartItems.flatMap(item => item.product.vendor.vendor_id)));
+    const totalAmount = cart.cartItems.reduce((sum, item) => {
+      const price = parseFloat(item.product.selling_price);
+      return isNaN(price) ? sum : sum + price;
+    }, 0);
+
+    const vendorIds = Array.from(new Set(cart.cartItems.map(item => item.product.vendor.vendor_id)));
 
     const applicableCoupons = await Coupon.findAll({
       where: {
         vendor_id: { [Op.in]: vendorIds }, 
         minimum_amount: {
-          [Op.lte]: totalAmount
+          [Op.lte]: totalAmount 
         },
         maximum_uses: {
           [Op.gt]: 0 
