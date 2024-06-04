@@ -44,5 +44,15 @@ const jwtMiddleware = (req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+const isAdmin = (req, res, next) => {
+  if (!req.decodedToken) {
+    return res.status(401).json({ message: "Unauthorized - Token not verified" });
+  }
 
-module.exports = { jwtMiddleware, generateToken };
+  if (req.decodedToken.authority !== 'admin') {
+    return res.status(403).json({ message: "Forbidden - Admin access required" });
+  }
+
+  next();
+};
+module.exports = { jwtMiddleware, generateToken,isAdmin };

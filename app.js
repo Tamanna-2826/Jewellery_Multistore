@@ -19,6 +19,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const couponRouts =  require('./routes/couponRoutes');
 const customerRoutes =  require('./routes/customerRoutes');
+const bannerRoutes =  require('./routes/bannerRoutes');
+
 
 
 
@@ -40,6 +42,8 @@ app.use('/payment', paymentRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/coupon',couponRouts);
 app.use('/customer',customerRoutes);
+app.use('/banner',bannerRoutes);
+
 
 
 
