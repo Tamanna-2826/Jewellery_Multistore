@@ -730,7 +730,7 @@ const getAdminDetailedOrderDetails = async (req, res) => {
                 {
                   model: Vendor,
                   as: "vendor",
-                  attributes: ["vendor_id", "first_name", "last_name"],
+                  attributes: ["vendor_id", "first_name", "last_name","email"],
                 },
               ],
             },

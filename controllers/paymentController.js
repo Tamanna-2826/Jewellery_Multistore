@@ -30,7 +30,7 @@ const generateOrderTrackingId = () => {
 const IGST_RATE = 3;
 
 const createCheckoutSession = async (req, res) => {
-  const { user_id,coupon_code  } = req.body;
+  const { user_id } = req.body;
 
   try {
     const cart = await Cart.findOne({
@@ -74,7 +74,7 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         order_id: generateOrderTrackingId(),
         user_id,
-        coupon_code: coupon_code || null, // Include coupon code in metadata
+        // coupon_code: coupon_code || null, // Include coupon code in metadata
       },
     });
 
