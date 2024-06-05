@@ -2,6 +2,7 @@ const { Product, Vendor, Category, State } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
 const cloudinary = require("../config/cloudinaryConfig");
 const { buildWhereClause, applySorting, applyPagination } = require('../helpers/queryHelper');
+const { Op } = require("sequelize");
 
 
 const addProduct = async (req, res) => {

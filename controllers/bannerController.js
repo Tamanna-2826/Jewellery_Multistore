@@ -1,5 +1,4 @@
 const { Banner } = require("../models");
-const { Op } = require("sequelize");
 const cloudinary = require("../config/cloudinaryConfig");
 const fs = require("fs");
 
