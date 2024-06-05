@@ -16,14 +16,6 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      start_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: false
-      },
-      end_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: false
-      },
       is_active: {
         type: Sequelize.BOOLEAN,
         allowNull: false,

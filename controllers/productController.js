@@ -1,6 +1,8 @@
 const { Product, Vendor, Category, State } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
 const cloudinary = require("../config/cloudinaryConfig");
+const { buildWhereClause, applySorting, applyPagination } = require('../helpers/queryHelper');
+
 
 const addProduct = async (req, res) => {
   try {
@@ -524,6 +526,49 @@ const updateProduct = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+const searchProducts = async (req, res) => {
+  try {
+    const query = req.query.q;
+    const products = await Product.findAll({
+      where: {
+        [Op.or]: [
+          { product_name: { [Op.iLike]: `%${query}%` } },
+          sequelize.literal(`search_vector @@ to_tsquery('english', '${query.split(' ').join(' & ')}')`)
+        ]
+      },
+      order: [
+        [sequelize.literal(`ts_rank(search_vector, to_tsquery('english', '${query.split(' ').join(' & ')}'))`), 'DESC'],
+        [sequelize.fn('similarity', sequelize.col('product_name'), query), 'DESC']
+      ],
+      limit: 20
+    });
+    res.json(products);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+const filterProducts = async (req, res) => {
+  try {
+    const whereClause = buildWhereClause(req.query);
+    let query = Product.findAndCountAll({
+      where: whereClause,
+      include: [
+        { model: Category, as: 'category' },
+        { model: Vendor, as: 'vendor' }
+      ]
+    });
+
+    query = applySorting(query, req.query.sort, req.query.order);
+    query = applyPagination(query, req.query.page, req.query.limit);
+
+    const { rows: products, count: total } = await query;
+    res.json({ products, total });
+  } catch (error) {
+    console.error('Filter error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 
 module.exports = {
   addProduct,
@@ -535,4 +580,6 @@ module.exports = {
   getProductsBySameCategory,
   getProductsBySameVendor,
   updateProduct,
+  searchProducts,
+  filterProducts
 };

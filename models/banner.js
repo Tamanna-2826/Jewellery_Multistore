@@ -19,28 +19,10 @@ module.exports = (sequelize, DataTypes) => {
       image_url: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-          isUrl: true,
-        },
       },
       title: {
         type: DataTypes.STRING,
         allowNull: false,
-      },
-      start_date: {
-        type: DataTypes.DATEONLY,
-        allowNull: false,
-      },
-      end_date: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        validate: {
-          isAfterStartDate(value) {
-            if (value <= this.start_date) {
-              throw new Error("End date must be after start date");
-            }
-          },
-        },
       },
       is_active: {
         type: DataTypes.BOOLEAN,

@@ -4,9 +4,9 @@ const bannerController = require('../controllers/bannerController');
 const { jwtMiddleware, isAdmin } = require('../middleware/jwtMiddleware');
 const multer = require('multer');
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-// const upload = multer({dest:'uploads/banners/'});
+// const storage = multer.memoryStorage();
+// const upload = multer({ storage: storage });
+const upload = multer({dest:'uploads/banners/'});
 
 // Public routes
 router.get('/', bannerController.getAllBanners);
