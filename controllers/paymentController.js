@@ -13,6 +13,7 @@ const {
   Coupon,
 } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
+const { Op } = require('sequelize');
 
 const generateOrderTrackingId = () => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -30,8 +31,64 @@ const generateOrderTrackingId = () => {
 
 const IGST_RATE = 3;
 
+// const createCheckoutSession = async (req, res) => {
+//   const { user_id } = req.body;
+
+//   try {
+//     const cart = await Cart.findOne({
+//       where: { user_id },
+//       include: [
+//         {
+//           model: CartItem,
+//           as: "cartItems",
+//           attributes: ["product_id", "quantity", "price", "size"],
+//           include: [
+//             {
+//               model: Product,
+//               as: "product",
+//               attributes: ["product_name", "selling_price", "p_images"],
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     const lineItems = cart.cartItems.map((item) => ({
+//       price_data: {
+//         currency: "INR",
+//         product_data: {
+//           name: item.product.product_name,
+//           images: item.product.p_images,
+//         },
+//         unit_amount: Math.round(item.product.selling_price * 1.03 * 100), 
+//       },
+//       quantity: item.quantity,
+//     }));
+
+//     const origin = req.headers.origin || "http://localhost:4000";
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: lineItems,
+//       mode: "payment",
+//       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&user_id=${user_id}`,
+//       cancel_url: `${origin}/cancel`,
+//       metadata: {
+//         order_id: generateOrderTrackingId(),
+//         user_id,
+//         // coupon_code: coupon_code || null, // Include coupon code in metadata
+//       },
+//     });
+
+//     res.status(200).send({ sessionId: session.id });
+//   } catch (error) {
+//     console.error("Error creating checkout session:", error);
+//     res.status(500).send({ error: error.message });
+//   }
+// };
+
 const createCheckoutSession = async (req, res) => {
-  const { user_id } = req.body;
+  const { user_id, coupon_code } = req.body;
 
   try {
     const cart = await Cart.findOne({
@@ -45,28 +102,101 @@ const createCheckoutSession = async (req, res) => {
             {
               model: Product,
               as: "product",
-              attributes: ["product_name", "selling_price", "p_images"],
+              attributes: ["product_name", "selling_price", "p_images", "vendor_id"],
             },
           ],
         },
       ],
     });
 
-    const lineItems = cart.cartItems.map((item) => ({
-      price_data: {
-        currency: "INR",
-        product_data: {
-          name: item.product.product_name,
-          images: item.product.p_images,
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+      return res.status(400).send({ error: "Cart is empty" });
+    }
+
+    let subtotal = 0;
+    let vendorTotals = {};
+
+    cart.cartItems.forEach(item => {
+      const itemTotal = item.quantity * item.product.selling_price;
+      subtotal += itemTotal;
+
+      if (!vendorTotals[item.product.vendor_id]) {
+        vendorTotals[item.product.vendor_id] = 0;
+      }
+      vendorTotals[item.product.vendor_id] += itemTotal;
+    });
+
+    let discountValue = 0;
+    let discountedAmount = subtotal;
+    let appliedCoupon = null;
+
+    if (coupon_code) {
+      try {
+        const coupon = await Coupon.findOne({
+          where: { 
+            code: coupon_code, 
+            expiry_date: { [Op.gt]: new Date() },
+            [Op.or]: [
+              { maximum_uses: { [Op.gt]: 0 } },
+              { maximum_uses: null }
+            ]
+          },
+          include: [{ model: Vendor, as: "vendor", attributes: ["vendor_id"] }],
+        });
+
+        if (coupon) {
+          const vendorSubtotal = vendorTotals[coupon.vendor.vendor_id] || 0;
+          const applicableAmount = coupon.minimum_amount !== null ? Math.min(vendorSubtotal, subtotal) : subtotal;
+
+          if (!coupon.minimum_amount || applicableAmount >= coupon.minimum_amount) {
+            discountValue = coupon.discount_type === 'percentage' 
+              ? (applicableAmount * coupon.discount_value / 100) 
+              : Math.min(coupon.discount_value, applicableAmount);
+            discountedAmount = Math.max(0, subtotal - discountValue);
+            appliedCoupon = coupon;
+          } else {
+            return res.status(400).send({ error: `Minimum order amount of ${coupon.minimum_amount} is required to use this coupon.` });
+          }
+        } else {
+          return res.status(400).send({ error: "Invalid or expired coupon code." });
+        }
+      } catch (couponError) {
+        console.error("Error validating coupon:", couponError);
+        return res.status(500).send({ error: "Error validating coupon." });
+      }
+    }
+
+    // Apply GST to the discounted amount
+    const gstAmount = (discountedAmount * 0.03);
+    const totalPayable = discountedAmount + gstAmount;
+
+    const lineItems = cart.cartItems.map((item) => {
+      const itemTotal = item.quantity * item.product.selling_price;
+      const itemDiscount = appliedCoupon && appliedCoupon.vendor.vendor_id === item.product.vendor_id
+        ? (appliedCoupon.discount_type === 'percentage' 
+          ? itemTotal * appliedCoupon.discount_value / 100 
+          : Math.min(appliedCoupon.discount_value, itemTotal) / cart.cartItems.length)
+        : 0;
+
+      const discountedItemTotal = Math.max(0, itemTotal - itemDiscount);
+      const gstIncludedPrice = Math.round(discountedItemTotal * 1.03 * 100) / item.quantity;
+
+      return {
+        price_data: {
+          currency: "INR",
+          product_data: {
+            name: item.product.product_name,
+            images: item.product.p_images,
+          },
+          unit_amount: Math.round(gstIncludedPrice), 
         },
-        unit_amount: Math.round(item.product.selling_price * 1.03 * 100), 
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
     const origin = req.headers.origin || "http://localhost:4000";
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionData = {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
@@ -75,9 +205,19 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         order_id: generateOrderTrackingId(),
         user_id,
-        // coupon_code: coupon_code || null, // Include coupon code in metadata
-      },
-    });
+        subtotal: subtotal.toFixed(2),
+        discount_value: discountValue.toFixed(2),
+        discounted_amount: discountedAmount.toFixed(2),
+        gst_amount: gstAmount.toFixed(2),
+        total_payable: totalPayable.toFixed(2),
+      }
+    };
+
+    if (appliedCoupon) {
+      sessionData.metadata.coupon_code = appliedCoupon.code;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionData);
 
     res.status(200).send({ sessionId: session.id });
   } catch (error) {
@@ -86,13 +226,388 @@ const createCheckoutSession = async (req, res) => {
   }
 };
 
+// const handleStripeWebhook = async (req, res) => {
+//   const sig = req.headers["stripe-signature"];
+
+//   let event;
+//   try {
+//     const rawBody = req.rawBody.toString();
+
+//     event = stripe.webhooks.constructEvent(
+//       rawBody,
+//       sig,
+//       process.env.STRIPE_WEBHOOK_SECRET
+//     );
+//   } catch (err) {
+//     console.log(`Webhook signature verification failed.`, err.message);
+//     return res.status(400).send(`Webhook Error: ${err.message}`);
+//   }
+
+//   if (event.type === "checkout.session.completed") {
+//     const session = event.data.object;
+//     const { user_id, order_id} = session.metadata;
+
+//     try {
+//       const shippingAddress = await Address.findOne({
+//         where: {
+//           user_id,
+//           address_type: "shipping",
+//         },
+//         include: [
+//           {
+//             model: State,
+//             as: "state",
+//             attributes: ["state_name"],
+//           },
+//           {
+//             model: City,
+//             as: "city",
+//             attributes: ["city_name"],
+//           },
+//         ],
+//       });
+
+//       if (!shippingAddress) {
+//         console.error("Shipping address not found");
+//         return res.status(400).send("Shipping address not found");
+//       }
+
+//       const userState = shippingAddress.state
+//         ? shippingAddress.state.state_name
+//         : null;
+
+//       let subtotal = 0;
+//       let cgst,
+//         sgst,
+//         igst = 0;
+
+//       const cart = await Cart.findOne({
+//         where: { user_id },
+//         include: [
+//           {
+//             model: CartItem,
+//             as: "cartItems",
+//             attributes: ["product_id", "quantity", "price", "size"],
+//             include: [
+//               {
+//                 model: Product,
+//                 as: "product",
+//                 attributes: ["product_name", "selling_price", "p_images"],
+//               },
+//             ],
+//           },
+//         ],
+//       });
+
+//       if (!cart || cart.cartItems.length === 0) {
+//         console.error("Cart is empty");
+//         return res.status(400).send("Cart is empty");
+//       }
+
+//       const coupon = await Coupon.findOne({
+//         where: { code: coupon_code },
+//         include: [
+//           {
+//             model: Vendor,
+//             as: "vendor",
+//             attributes: ["vendor_id"],
+//           },
+//         ],
+//       });
+
+//       let discountValue = 0;
+//       let discountedAmount = 0;
+//       const cartItems = cart.cartItems;
+
+//       for (const item of cartItems) {
+//         const { product_id, size, quantity, price } = item;
+//         const sub_total_item = quantity * price;
+//         subtotal += sub_total_item;
+
+//         const product = await Product.findOne({
+//           where: { product_id },
+//           include: [
+//             {
+//               model: Vendor,
+//               as: "vendor",
+//               attributes: ["first_name", "email"],
+//               include: [
+//                 {
+//                   model: State,
+//                   as: "state",
+//                   attributes: ["state_name"],
+//                 },
+//               ],
+//             },
+//           ],
+//         });
+
+//         const product_temp = item.product || product;
+//         if (!product) {
+//           throw new Error("Product not found");
+//         }
+
+//         const vendorState = product.vendor.state
+//           ? product.vendor.state.state_name
+//           : null;
+
+//         if (userState === vendorState) {
+//           cgst = 1.5;
+//           sgst = 1.5;
+//           igst = 0;
+//         } else {
+//           cgst = 0;
+//           sgst = 0;
+//           igst = 3;
+//         }
+
+//         const gstAmt = (sub_total_item * IGST_RATE) / 100;
+//         const total_price = sub_total_item + gstAmt;
+
+//         await OrderItem.create({
+//           order_id: session.metadata.order_id,
+//           product_id: item.product_id,
+//           quantity: item.quantity,
+//           unit_price: item.price,
+//           cgst,
+//           sgst,
+//           igst,
+//           sub_total: sub_total_item,
+//           total_price,
+//           vendor_status: 1,
+//           order_received: new Date(),
+//         });
+//       }
+
+//       if (coupon) {
+//         if (coupon.maximum_uses && coupon.maximum_uses <= 0) {
+//           console.error("Coupon has reached the maximum allowed uses");
+//           return res
+//             .status(400)
+//             .send("Coupon has reached the maximum allowed uses");
+//         }
+
+//         if (coupon.discount_type === "percentage") {
+//           discountValue = (subtotal * coupon.discount_value) / 100;
+//         } else {
+//           discountValue = coupon.discount_value;
+//         }
+
+//         discountedAmount = subtotal - discountValue;
+
+//         if (coupon.maximum_uses) {
+//           coupon.maximum_uses--;
+//           await coupon.save();
+//         }
+//       } else {
+//         discountedAmount = subtotal;
+//       }
+
+//       const gstAmount = (discountedAmount * IGST_RATE) / 100;
+//       const total_amount = (discountedAmount + gstAmount).toFixed(2);
+
+//       const order = await Order.create({
+//         order_id,
+//         user_id,
+//         order_date: new Date(),
+//         subtotal,
+//         coupon_id: coupon ? coupon.coupon_id : null,
+//         discount_value: discountValue,
+//         discounted_amount: discountedAmount,
+//         total_amount,
+//         address_id: shippingAddress.address_id,
+//         status: 1,
+//         order_placed: new Date(),
+//       });
+
+//       const paymentIntent = await stripe.paymentIntents.retrieve(
+//         session.payment_intent
+//       );
+
+//       await Payment.create({
+//         order_id: order.order_id,
+//         currency: session.currency,
+//         payment_method_name: "card",
+//         amount: total_amount,
+//         payment_date: new Date(paymentIntent.created * 1000),
+//         status: session.status,
+//         transaction_id: paymentIntent.id,
+//       });
+
+//       await CartItem.destroy({
+//         where: { cart_id: cart.cart_id },
+//         force: false,
+//       });
+
+//       // Send emails to customer and vendors
+//       const customerDetails = await User.findByPk(user_id);
+
+//       const customerHtmlContent = `
+//       <html>
+//           <head>
+//               <style>
+//                   body {
+//                       font-family: Arial, sans-serif;
+//                       padding: 10px;
+//                       width: 100%;
+//                       height: 100vh;
+//                       display: flex;
+//                   }
+//                   .container {
+//                       max-width: 600px;
+//                       padding: 10px;
+//                       border-radius: 10px;
+//                       background-color: #f5f5f5;
+//                   }
+//                   .header {
+//                       color: black;
+//                       padding: 10px;
+//                   }
+//                   h1 {
+//                       text-align: center;
+//                   }
+//                   .content {
+//                       padding: 20px;
+//                   }
+//                   .footer {
+//                       color: black;
+//                       text-align: center;
+//                       padding: 10px;
+//                       background-color: #d7d3d3;
+//                       border-radius: 3px;
+//                   }
+//               </style>
+//           </head>
+//           <body>
+//           <div class="container">
+//             <div class="header">
+//              <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+//               <h1>Order Request Received ! </h1>
+//               Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
+//               Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
+//               Your order has been received with the following details:<br>
+//               Order ID: ${order.order_id} <br>
+//               Order Date: ${order.order_date}<br>
+//               Total Amount: ${total_amount}<br>
+//               Your order will be processed as soon as possible. You will receive a order confirmation email once your order has been confirmed.
+//                <br><br>
+//               Thank you for choosing Nishkar! <br><br>
+//               Best regards,<br>
+//                The Nishkar Team
+//               </div>
+//               <div class="footer">
+//                   <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+//               </div>
+//               </div>
+//             </body>
+//           </html>
+//       `;
+//       sendEmail(
+//         customerDetails.email,
+//         "Order Request Received",
+//         customerHtmlContent
+//       );
+
+//       for (const item of cartItems) {
+//         const product = await Product.findOne({
+//           where: { product_id: item.product_id },
+//           include: [
+//             {
+//               model: Vendor,
+//               as: "vendor",
+//               attributes: ["first_name", "email"],
+//               include: [
+//                 {
+//                   model: State,
+//                   as: "state",
+//                   attributes: ["state_name"],
+//                 },
+//               ],
+//             },
+//           ],
+//         });
+
+//         const vendorHtmlContent = `
+//         <html>
+//             <head>
+//                 <style>
+//                     body {
+//                         font-family: Arial, sans-serif;
+//                         padding: 10px;
+//                         width: 100%;
+//                         height: 100vh;
+//                         display: flex;
+//                     }
+//                     .container {
+//                         max-width: 600px;
+//                         padding: 10px;
+//                         border-radius: 10px;
+//                         background-color: #f5f5f5;
+//                     }
+//                     .header {
+//                         color: black;
+//                         padding: 10px;
+//                     }
+//                     h1 {
+//                         text-align: center;
+//                     }
+//                     .content {
+//                         padding: 20px;
+//                     }
+//                     .footer {
+//                         color: black;
+//                         text-align: center;
+//                         padding: 10px;
+//                         background-color: #d7d3d3;
+//                         border-radius: 3px;
+//                     }
+//                 </style>
+//             </head>
+//             <body>
+//             <div class="container">
+//               <div class="header">
+//                <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+//                 <h1>New Order Received</h1>
+//                 Dear ${product.vendor.first_name},<br><br>
+//                 Congratulations! You have received a new order on Nishkar.<br>
+//                 Here are the details:<br>
+//                 Customer Name: ${customerDetails.first_name} ${customerDetails.last_name}<br>
+//                 Email: ${customerDetails.email}<br>
+//                 Phone: ${customerDetails.phone_no}<br>
+//                 Product name : ${product.product_name}<br> <br>
+//                 We wish you great success with this new order! <br><br>
+//                 Best regards,<br>
+//                 The Nishkar Team
+//                 </div>
+//                 <div class="footer">
+//                     <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+//                 </div>
+//                 </div>
+//               </body>
+//             </html>
+//         `;
+//         sendEmail(
+//           product.vendor.email,
+//           "New Order received",
+//           vendorHtmlContent
+//         );
+//       }
+//       return res
+//         .status(200)
+//         .json({ message: "Payment completed Successfully" });
+//     } catch (error) {
+//       console.error("Error processing webhook:", error);
+//       return res.status(500).json({ message: "Internal Server Error" });
+//     }
+  // }
+// };
+
 const handleStripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
 
   let event;
   try {
     const rawBody = req.rawBody.toString();
-
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
@@ -105,25 +620,29 @@ const handleStripeWebhook = async (req, res) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const { user_id, order_id} = session.metadata;
+    const { 
+      user_id, 
+      order_id, 
+      coupon_code,
+      subtotal: rawSubtotal,
+      discount_value: rawDiscountValue,
+      discounted_amount: rawDiscountedAmount,
+      gst_amount: rawGstAmount,
+      total_payable: rawTotalPayable
+    } = session.metadata;
 
     try {
+      const subtotal = parseFloat(rawSubtotal) || 0;
+      const discountValue = parseFloat(rawDiscountValue) || 0;
+      const discountedAmount = parseFloat(rawDiscountedAmount) || subtotal;
+      const gstAmount = parseFloat(rawGstAmount) || 0;
+      const totalPayable = parseFloat(rawTotalPayable) || discountedAmount + gstAmount;
+
       const shippingAddress = await Address.findOne({
-        where: {
-          user_id,
-          address_type: "shipping",
-        },
+        where: { user_id, address_type: "shipping" },
         include: [
-          {
-            model: State,
-            as: "state",
-            attributes: ["state_name"],
-          },
-          {
-            model: City,
-            as: "city",
-            attributes: ["city_name"],
-          },
+          { model: State, as: "state", attributes: ["state_name"] },
+          { model: City, as: "city", attributes: ["city_name"] },
         ],
       });
 
@@ -131,15 +650,6 @@ const handleStripeWebhook = async (req, res) => {
         console.error("Shipping address not found");
         return res.status(400).send("Shipping address not found");
       }
-
-      const userState = shippingAddress.state
-        ? shippingAddress.state.state_name
-        : null;
-
-      let subtotal = 0;
-      let cgst,
-        sgst,
-        igst = 0;
 
       const cart = await Cart.findOne({
         where: { user_id },
@@ -152,7 +662,7 @@ const handleStripeWebhook = async (req, res) => {
               {
                 model: Product,
                 as: "product",
-                attributes: ["product_name", "selling_price", "p_images"],
+                attributes: ["product_name", "selling_price", "p_images", "vendor_id"],
               },
             ],
           },
@@ -164,25 +674,22 @@ const handleStripeWebhook = async (req, res) => {
         return res.status(400).send("Cart is empty");
       }
 
-      const coupon = await Coupon.findOne({
-        where: { code: coupon_code },
-        include: [
-          {
-            model: Vendor,
-            as: "vendor",
-            attributes: ["vendor_id"],
-          },
-        ],
-      });
+      let coupon = null;
+      if (coupon_code) {
+        coupon = await Coupon.findOne({
+          where: { code: coupon_code },
+          include: [{ model: Vendor, as: "vendor", attributes: ["vendor_id"] }],
+        });
 
-      let discountValue = 0;
-      let discountedAmount = 0;
-      const cartItems = cart.cartItems;
+        if (coupon && coupon.maximum_uses !== null) {
+          coupon.maximum_uses = Math.max(0, coupon.maximum_uses - 1);
+          await coupon.save();
+        }
+      }
 
-      for (const item of cartItems) {
-        const { product_id, size, quantity, price } = item;
-        const sub_total_item = quantity * price;
-        subtotal += sub_total_item;
+      for (const item of cart.cartItems) {
+        const { product_id, quantity, price } = item;
+        const itemTotal = quantity * price;
 
         const product = await Product.findOne({
           where: { product_id },
@@ -190,81 +697,53 @@ const handleStripeWebhook = async (req, res) => {
             {
               model: Vendor,
               as: "vendor",
-              attributes: ["first_name", "email"],
-              include: [
-                {
-                  model: State,
-                  as: "state",
-                  attributes: ["state_name"],
-                },
-              ],
+              attributes: ["first_name", "email", "vendor_id"],
+              include: [{ model: State, as: "state", attributes: ["state_name"] }],
             },
           ],
         });
 
-        const product_temp = item.product || product;
         if (!product) {
-          throw new Error("Product not found");
+          console.error(`Product not found: ${product_id}`);
+          continue;
         }
 
-        const vendorState = product.vendor.state
-          ? product.vendor.state.state_name
-          : null;
+        const userState = shippingAddress.state ? shippingAddress.state.state_name : null;
+        const vendorState = product.vendor.state ? product.vendor.state.state_name : null;
 
+        let cgst = 0, sgst = 0, igst = 0;
         if (userState === vendorState) {
           cgst = 1.5;
           sgst = 1.5;
-          igst = 0;
         } else {
-          cgst = 0;
-          sgst = 0;
           igst = 3;
         }
 
-        const gstAmt = (sub_total_item * IGST_RATE) / 100;
-        const total_price = sub_total_item + gstAmt;
+        const itemDiscount = coupon && coupon.vendor.vendor_id === product.vendor_id
+          ? (coupon.discount_type === 'percentage' 
+            ? itemTotal * coupon.discount_value / 100 
+            : Math.min(coupon.discount_value, itemTotal) / cart.cartItems.length)
+          : 0;
+
+        const discountedItemTotal = Math.max(0, itemTotal - itemDiscount);
+        const gstAmt = (discountedItemTotal * 0.03);
+        const total_price = discountedItemTotal + gstAmt;
 
         await OrderItem.create({
-          order_id: session.metadata.order_id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.price,
-          cgst,
-          sgst,
-          igst,
-          sub_total: sub_total_item,
+          order_id: order.order_id,
+          product_id: product_id,
+          quantity: quantity,
+          unit_price: price,
+          cgst, sgst, igst,
+          sub_total: itemTotal,
+          discount: itemDiscount,
+          discounted_sub_total: discountedItemTotal,
+          gst_amount: gstAmt,
           total_price,
           vendor_status: 1,
           order_received: new Date(),
         });
       }
-
-      if (coupon) {
-        if (coupon.maximum_uses && coupon.maximum_uses <= 0) {
-          console.error("Coupon has reached the maximum allowed uses");
-          return res
-            .status(400)
-            .send("Coupon has reached the maximum allowed uses");
-        }
-
-        if (coupon.discount_type === "percentage") {
-          discountValue = (subtotal * coupon.discount_value) / 100;
-        } else {
-          discountValue = coupon.discount_value;
-        }
-
-        discountedAmount = subtotal - discountValue;
-
-        if (coupon.maximum_uses) {
-          coupon.maximum_uses--;
-          await coupon.save();
-        }
-      } else {
-        discountedAmount = subtotal;
-      }
-
-      const gstAmount = (discountedAmount * IGST_RATE) / 100;
-      const total_amount = (discountedAmount + gstAmount).toFixed(2);
 
       const order = await Order.create({
         order_id,
@@ -274,7 +753,8 @@ const handleStripeWebhook = async (req, res) => {
         coupon_id: coupon ? coupon.coupon_id : null,
         discount_value: discountValue,
         discounted_amount: discountedAmount,
-        total_amount,
+        gst_amount: gstAmount,
+        total_amount: totalPayable,
         address_id: shippingAddress.address_id,
         status: 1,
         order_placed: new Date(),
@@ -288,7 +768,7 @@ const handleStripeWebhook = async (req, res) => {
         order_id: order.order_id,
         currency: session.currency,
         payment_method_name: "card",
-        amount: total_amount,
+        amount: totalPayable,
         payment_date: new Date(paymentIntent.created * 1000),
         status: session.status,
         transaction_id: paymentIntent.id,
@@ -301,160 +781,17 @@ const handleStripeWebhook = async (req, res) => {
 
       // Send emails to customer and vendors
       const customerDetails = await User.findByPk(user_id);
+      sendEmail(customerDetails.email, "Order Request Received", generateCustomerEmail(order, totalPayable, customerDetails));
 
-      const customerHtmlContent = `
-      <html>
-          <head>
-              <style>
-                  body {
-                      font-family: Arial, sans-serif;
-                      padding: 10px;
-                      width: 100%;
-                      height: 100vh;
-                      display: flex;
-                  }
-                  .container {
-                      max-width: 600px;
-                      padding: 10px;
-                      border-radius: 10px;
-                      background-color: #f5f5f5;
-                  }
-                  .header {
-                      color: black;
-                      padding: 10px;
-                  }
-                  h1 {
-                      text-align: center;
-                  }
-                  .content {
-                      padding: 20px;
-                  }
-                  .footer {
-                      color: black;
-                      text-align: center;
-                      padding: 10px;
-                      background-color: #d7d3d3;
-                      border-radius: 3px;
-                  }
-              </style>
-          </head>
-          <body>
-          <div class="container">
-            <div class="header">
-             <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
-              <h1>Order Request Received ! </h1>
-              Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
-              Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
-              Your order has been received with the following details:<br>
-              Order ID: ${order.order_id} <br>
-              Order Date: ${order.order_date}<br>
-              Total Amount: ${total_amount}<br>
-              Your order will be processed as soon as possible. You will receive a order confirmation email once your order has been confirmed.
-               <br><br>
-              Thank you for choosing Nishkar! <br><br>
-              Best regards,<br>
-               The Nishkar Team
-              </div>
-              <div class="footer">
-                  <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
-              </div>
-              </div>
-            </body>
-          </html>
-      `;
-      sendEmail(
-        customerDetails.email,
-        "Order Request Received",
-        customerHtmlContent
-      );
-
-      for (const item of cartItems) {
+      for (const item of cart.cartItems) {
         const product = await Product.findOne({
           where: { product_id: item.product_id },
-          include: [
-            {
-              model: Vendor,
-              as: "vendor",
-              attributes: ["first_name", "email"],
-              include: [
-                {
-                  model: State,
-                  as: "state",
-                  attributes: ["state_name"],
-                },
-              ],
-            },
-          ],
+          include: [{ model: Vendor, as: "vendor", attributes: ["first_name", "email"] }],
         });
-
-        const vendorHtmlContent = `
-        <html>
-            <head>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        padding: 10px;
-                        width: 100%;
-                        height: 100vh;
-                        display: flex;
-                    }
-                    .container {
-                        max-width: 600px;
-                        padding: 10px;
-                        border-radius: 10px;
-                        background-color: #f5f5f5;
-                    }
-                    .header {
-                        color: black;
-                        padding: 10px;
-                    }
-                    h1 {
-                        text-align: center;
-                    }
-                    .content {
-                        padding: 20px;
-                    }
-                    .footer {
-                        color: black;
-                        text-align: center;
-                        padding: 10px;
-                        background-color: #d7d3d3;
-                        border-radius: 3px;
-                    }
-                </style>
-            </head>
-            <body>
-            <div class="container">
-              <div class="header">
-               <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
-                <h1>New Order Received</h1>
-                Dear ${product.vendor.first_name},<br><br>
-                Congratulations! You have received a new order on Nishkar.<br>
-                Here are the details:<br>
-                Customer Name: ${customerDetails.first_name} ${customerDetails.last_name}<br>
-                Email: ${customerDetails.email}<br>
-                Phone: ${customerDetails.phone_no}<br>
-                Product name : ${product.product_name}<br> <br>
-                We wish you great success with this new order! <br><br>
-                Best regards,<br>
-                The Nishkar Team
-                </div>
-                <div class="footer">
-                    <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
-                </div>
-                </div>
-              </body>
-            </html>
-        `;
-        sendEmail(
-          product.vendor.email,
-          "New Order received",
-          vendorHtmlContent
-        );
+        sendEmail(product.vendor.email, "New Order received", generateVendorEmail(product, customerDetails));
       }
-      return res
-        .status(200)
-        .json({ message: "Payment completed Successfully" });
+
+      return res.status(200).json({ message: "Payment completed Successfully" });
     } catch (error) {
       console.error("Error processing webhook:", error);
       return res.status(500).json({ message: "Internal Server Error" });

@@ -1,4 +1,3 @@
-const bodyParser = require("body-parser");
 const express = require("express");
 const Sequelize = require("sequelize");
 const sequelizeConfig = require("./config/config.js");
@@ -20,9 +19,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const couponRouts =  require('./routes/couponRoutes');
 const customerRoutes =  require('./routes/customerRoutes');
 const bannerRoutes =  require('./routes/bannerRoutes');
-
-
-
+const invoiceRoutes = require('./routes/invoiceRoutes');
 
 const app = express();
 
@@ -43,9 +40,7 @@ app.use('/reviews', reviewRoutes);
 app.use('/coupon',couponRouts);
 app.use('/customer',customerRoutes);
 app.use('/banner',bannerRoutes);
-
-
-
+app.use('/invoices', invoiceRoutes);
 
 sequelize.sync()
   .then(() => {

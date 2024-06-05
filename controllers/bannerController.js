@@ -4,7 +4,7 @@ const fs = require("fs");
 
 const createBanner = async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title,is_active } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "No image file provided" });
@@ -18,6 +18,7 @@ const createBanner = async (req, res) => {
     const banner = await Banner.create({
       image_url: bannerImageId,
       title,
+      is_active
     });
 
     res
