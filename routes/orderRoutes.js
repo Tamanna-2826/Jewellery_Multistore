@@ -3,7 +3,6 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { jwtMiddleware } = require('../middleware/jwtMiddleware');
 
-router.post('/add',orderController.addOrder);
 router.get('/:user_id', orderController.getOrderDetailsByUserId);
 router.get('/detailed/:user_id/:order_id', orderController.getDetailedOrderDetails);
 router.get('/admin/orders', orderController.getBasicOrderDetailsForAdmin);

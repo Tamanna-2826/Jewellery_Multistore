@@ -99,7 +99,6 @@ const deleteCoupon = async (req, res) => {
 
 const getApplicableCoupons = async (req, res) => {
   const { cart_id } = req.params;
-  console.log("CART ID : ",cart_id);
 
   try {
     const cart = await Cart.findByPk(cart_id, {

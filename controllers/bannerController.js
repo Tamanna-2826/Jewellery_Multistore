@@ -33,11 +33,17 @@ const createBanner = async (req, res) => {
 const updateBanner = async (req, res) => {
   try {
     const { banner_id } = req.params;
-    const { title } = req.body;
+    const { title, is_active } = req.body;
 
     const banner = await Banner.findByPk(banner_id);
     if (!banner) return res.status(404).json({ message: "Banner not found" });
-    banner.title = title;
+
+    // Delete existing image if a new file is uploaded
+    if (req.file && banner.image_url) {
+      await cloudinary.uploader.destroy(banner.image_url);
+    }
+
+    // Upload new image if provided
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "banners",
@@ -45,15 +51,18 @@ const updateBanner = async (req, res) => {
       banner.image_url = result.public_id;
     }
 
-    await banner.update({ title });
-    res
-      .status(200)
-      .json({ message: "Banner Updated Successfully ", data: banner });
+    // Update banner details
+    banner.title = title;
+    banner.is_active = is_active;
+    await banner.save();
+
+    res.status(200).json({ message: "Banner Updated Successfully", data: banner });
   } catch (error) {
     console.error("Error updating banner:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 const deleteBanner = async (req, res) => {
   try {

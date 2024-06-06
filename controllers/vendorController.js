@@ -62,7 +62,6 @@ const vendorRegistration = async (req, res) => {
         .status(400)
         .json({ message: "Phone number already exists as a vendor" });
     }
-    console.log("REQ BODY : ", req.body);
     const newVendor = await Vendor.create({
       first_name,
       last_name,
@@ -118,7 +117,6 @@ const vendorRegistration = async (req, res) => {
 
 const getVendorDetails = async (req, res) => {
   try {
-    console.log("INSIDE GET VENDOR DETAILS ");
     const { vendor_id } = req.params;
 
     const vendorDetails = await Vendor.findOne({

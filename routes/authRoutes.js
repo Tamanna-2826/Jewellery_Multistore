@@ -9,6 +9,7 @@ router.post('/vendor-login',vendorLogin);
 router.post('/admin-login', adminLogin);
 router.post('/register/user', userRegister);
 router.get('/profile', jwtMiddleware, getUserProfile);
+router.put('/update', jwtMiddleware, updateUser);
 
 
 module.exports = router;

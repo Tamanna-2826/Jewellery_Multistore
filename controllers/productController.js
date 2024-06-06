@@ -143,13 +143,14 @@ const softDeleteProduct = async (req, res) => {
     <head>
         <style>
             body {
-                font-family: Arial, sans-serif;
-                padding: 10px;
-                width: 100%;
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
+               font-family: Arial, sans-serif;
+              padding: 10px;
+              width: 100%;
+              height: 100vh;
+              display: flex;
+              justify-content: center; 
+              align-items: center;
+              margin: 0;
             }
     
             .container {

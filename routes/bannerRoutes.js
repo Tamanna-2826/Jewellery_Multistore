@@ -14,7 +14,9 @@ router.get('/active', bannerController.getActiveBanners);
 
 // Admin-only routes
 router.post('/add', jwtMiddleware, isAdmin, upload.single('image_url'), bannerController.createBanner);
-router.put('/update/:banner_id', jwtMiddleware, isAdmin, upload.single('image_url'), bannerController.updateBanner);
+// router.put('/update/:banner_id', jwtMiddleware, isAdmin, upload.single('image_url'), bannerController.updateBanner);
+router.put('/update/:banner_id',upload.single('image_url'), bannerController.updateBanner);
+
 router.delete('/delete/:banner_id', jwtMiddleware, isAdmin, bannerController.deleteBanner);
 
 module.exports = router;

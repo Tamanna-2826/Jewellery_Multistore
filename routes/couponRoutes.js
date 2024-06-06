@@ -6,9 +6,9 @@ router.post('/add', couponController.createCoupon);
 
 router.get('/vendor/:vendor_id', couponController.getCouponsForVendor);
 
-router.put('/:coupon_id', couponController.updateCoupon);
+router.put('/update/:coupon_id', couponController.updateCoupon);
 
-router.delete('/:coupon_id', couponController.deleteCoupon);
+router.delete('/delete/:coupon_id', couponController.deleteCoupon);
 
 router.get('/carts/:cart_id/applicable-coupons', couponController.getApplicableCoupons);
 
