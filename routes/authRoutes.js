@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { jwtMiddleware } = require('../middleware/jwtMiddleware');
 
-const { userLogin,vendorLogin,adminLogin,getUserProfile,userRegister } = require('../controllers/authController');
+const { userLogin,vendorLogin,adminLogin,getUserProfile,userRegister,updateUser } = require('../controllers/authController');
 
 router.post('/user-login', userLogin);
 router.post('/vendor-login',vendorLogin);
