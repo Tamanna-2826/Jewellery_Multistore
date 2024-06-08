@@ -40,7 +40,7 @@ app.use('/reviews', reviewRoutes);
 app.use('/coupon',couponRouts);
 app.use('/customer',customerRoutes);
 app.use('/banner',bannerRoutes);
-app.use('/invoices', invoiceRoutes);
+app.use('/invoice', invoiceRoutes);
 
 sequelize.sync()
   .then(() => {

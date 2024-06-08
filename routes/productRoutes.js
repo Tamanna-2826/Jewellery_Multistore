@@ -24,6 +24,11 @@ router.put('/update/:product_id',upload.array("p_images"), productController.upd
 
 router.get('/search', productController.searchProducts);
 router.get('/filter', productController.filterProducts);
+router.get('/bestsellers', productController.getBestSellingProducts);
+router.get('/trending', productController.getTrendingProducts);
+router.get('/recent', productController.getRecentProducts);
+
+
 
 
 

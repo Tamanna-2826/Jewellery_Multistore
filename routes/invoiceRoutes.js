@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const invoiceController = require('../controllers/invoiceController');
 
-// Route for downloading an invoice
-router.get('/download-invoice/:invoiceId', invoiceController.downloadInvoice);
+// Route to download an invoice
+router.get('/:order_id/invoice', invoiceController.downloadInvoice);
 
 module.exports = router;

@@ -621,6 +621,7 @@ const updateAdminOrderStatus = async (req, res) => {
       order.orderItems.forEach((item) => {
         productList += `<li>${item.product.product_name} (Quantity: ${item.quantity})</li>`;
       });
+
       // Send email to user
       const userEmail = order.user.email;
       const userSubject = "Your order has been delivered!";
@@ -629,51 +630,74 @@ const updateAdminOrderStatus = async (req, res) => {
       <head>
           <style>
               body {
-                  font-family: Arial, sans-serif;
-                  padding: 10px;
-                  width: 100%;
-                  height: 100vh;
-                  display: flex;
-                  justify-content: center; 
-                  align-items: center;
-                  margin: 0;
-              }
- 
-              .container {
-                  max-width: 600px;
-                  padding: 10px;
-                  border-radius: 10px;
-                  background-color: #f5f5f5;
-                  margin: auto;
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
 
-              }
- 
-              .header {
-                  color: black;
-                  padding: 10px;
-              }
-              h1{
-                text-align: center;
-              }
-              .content {
-                  padding: 20px;
-              }
- 
-              .footer {
-                  color: black;
-                  text-align: center;
-                  padding: 10px;
-                  background-color: #d7d3d3; /* Light grey background color */
-                  border-radius: 3px;
- 
-              }
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
+              
           </style>
       </head>
  
       <body>
       <div class="container">
         <div class="header">
-         <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>  
+         <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>  
          <h1>Order Delivered</h1>
          <p>Dear ${order.user.first_name},</p>
          <p>Your order #${order.order_id} has been successfully delivered. Thank you for shopping with us!</p>
@@ -701,49 +725,73 @@ const updateAdminOrderStatus = async (req, res) => {
         <head>
             <style>
                 body {
-                    font-family: Arial, sans-serif;
-                    padding: 10px;
-                    width: 100%;
-                    height: 100vh;
-                    display: flex;
-               
-                }
-   
-                .container {
-                    max-width: 600px;
-                    padding: 10px;
-                    border-radius: 10px;
-                    background-color: #f5f5f5;
-                    margin: auto;
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
 
-                }
-   
-                .header {
-                    color: black;
-                    padding: 10px;
-                }
-                h1{
-                  text-align: center;
-                }
-                .content {
-                    padding: 20px;
-                }
-   
-                .footer {
-                    color: black;
-                    text-align: center;
-                    padding: 10px;
-                    background-color: #d7d3d3; /* Light grey background color */
-                    border-radius: 3px;
-   
-                }
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            // background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
             </style>
         </head>
    
         <body>
         <div class="container">
           <div class="header">
-           <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2> 
+           <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2> 
           <h1>Product Delivered</h1>
           <p>Hello ${item.product.vendor.first_name},</p>
           <p>The product "${item.product.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>

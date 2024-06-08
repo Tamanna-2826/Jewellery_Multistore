@@ -393,68 +393,96 @@ const handleStripeWebhook = async (req, res) => {
       })} ${orderDate.getDate()}, ${orderDate.getFullYear()}`;
 
       const customerHtmlContent = `
-            <html>
-                <head>
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            padding: 10px;
-                            width: 100%;
-                            height: 100vh;
-                            display: flex;
-                            justify-content: center; 
-                            align-items: center;
-                            margin: 0;
-                        }
-                        .container {
-                            max-width: 600px;
-                            padding: 10px;
-                            border-radius: 10px;
-                            background-color: #f5f5f5;
-                            margin: auto;
-                        }
-                        .header {
-                            color: black;
-                            padding: 10px;
-                        }
-                        h1 {
-                            text-align: center;
-                        }
-                        .content {
-                            padding: 20px;
-                        }
-                        .footer {
-                            color: black;
-                            text-align: center;
-                            padding: 10px;
-                            background-color: #d7d3d3;
-                            border-radius: 3px;
-                        }
-                    </style>
-                </head>
-                <body>
-                <div class="container">
-                  <div class="header">
-                   <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>
-                    <h1>Order  Received ! </h1>
-                    Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
-                    Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
-                    Your order has been received with the following details:<br>
-                    Order ID: ${order.order_id} <br>
-                    Order Date: ${formattedOrderDate}<br>
-                    Total Amount: ${totalPayable}<br><br>
-                    Your order will be processed as soon as possible. You will receive an email once your order has been delivered.
-                     <br><br>
-                    Thank you for choosing Nishkar! <br><br>
-                    Best regards,<br>
-                     The Nishkar Team
-                    </div>
-                    <div class="footer">
-                        <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
-                    </div>
-                    </div>
-                  </body>
-                </html>
+      <html>
+      <head>
+      <style>
+      body {
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
+
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
+
+        </style>
+        </head>
+        <body>
+        <div class="container">
+          <div class="header">
+            <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>
+            <h1>Order  Received ! </h1>
+            Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
+            Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
+            Your order has been received with the following details:<br>
+            Order ID: ${order.order_id} <br>
+            Order Date: ${formattedOrderDate}<br>
+            Total Amount: ${totalPayable}<br><br>
+            Your order will be processed as soon as possible. You will receive an email once your order has been delivered.
+              <br><br>
+            Thank you for choosing Nishkar! <br><br>
+            Best regards,<br>
+            Team Nishkar
+            </div>
+            <div class="footer">
+                <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+            </div>
+            </div>
+          </body>
+        </html>
             `;
       sendEmail(customerDetails.email, "Order Received", customerHtmlContent);
 
@@ -475,45 +503,72 @@ const handleStripeWebhook = async (req, res) => {
                     <head>
                         <style>
                             body {
-                                font-family: Arial, sans-serif;
-                                padding: 10px;
-                                width: 100%;
-                                height: 100vh;
-                                display: flex;
-                                justify-content: center; 
-                                align-items: center;
-                                margin: 0; 
-                            }
-                            .container {
-                                max-width: 600px;
-                                padding: 10px;
-                                border-radius: 10px;
-                                background-color: #f5f5f5;
-                                margin: auto;
-                            }
-                            .header {
-                                color: black;
-                                padding: 10px;
-                            }
-                            h1 {
-                                text-align: center;
-                            }
-                            .content {
-                                padding: 20px;
-                            }
-                            .footer {
-                                color: black;
-                                text-align: center;
-                                padding: 10px;
-                                background-color: #d7d3d3;
-                                border-radius: 3px;
-                            }
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
+
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
                         </style>
                     </head>
                     <body>
                     <div class="container">
                       <div class="header">
-                       <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>
+                       <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>
                         <h1>New Order Received</h1>
                         Dear ${product.vendor.first_name},<br><br>
                         Congratulations! You have received a new order on Nishkar.<br>
@@ -524,7 +579,7 @@ const handleStripeWebhook = async (req, res) => {
                         Product name : ${product.product_name}<br> <br>
                         We wish you great success with this new order! <br><br>
                         Best regards,<br>
-                        The Nishkar Team
+                        Team Nishkar
                         </div>
                         <div class="footer">
                             <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>

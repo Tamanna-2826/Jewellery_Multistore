@@ -164,48 +164,74 @@ const vendorActivation = async (req, res) => {
       <html>
       <head>
           <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  padding: 10px;
-                  width: 100%;
-                  height: 100vh;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-              }
-      
-              .container {
-                  max-width: 600px;
-                  padding: 10px;
-                  border-radius: 10px;
-                  background-color: #f5f5f5;
-              }
-      
-              .header {
-                  color: black;
-                  text-align: center;
-                  padding: 10px;
-              }
-      
-              .content {
-                  padding: 20px;
-              }
-      
-              .footer {
-                  color: black;
-                  text-align: center;
-                  padding: 10px;
-                  background-color: #d7d3d3; /* Light grey background color */
-                  border-radius: 3px;
-      
-              }
+             body {
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
+
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
           </style>
       </head>
       
       <body>
       <div class="container">
           <div class="header">
-              <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>
+              <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>
               <h1 style="margin-top: 0;">Congratulations ${vendor.first_name} !</h1>
           </div>
           <div class="content">
@@ -263,55 +289,81 @@ const vendorDeactivation = async (req, res) => {
     <head>
         <style>
             body {
-                font-family: Arial, sans-serif;
-                padding: 10px;
-                width: 100%;
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-    
-            .container {
-                max-width: 600px;
-                padding: 10px;
-                border-radius: 10px;
-                background-color: #f5f5f5;
-            }
-    
-            .header {
-                color: black;
-                text-align: center;
-                padding: 10px;
-            }
-    
-            .content {
-                padding: 20px;
-            }
-    
-            .footer {
-                color: black;
-                text-align: center;
-                padding: 10px;
-                background-color: #d7d3d3; /* Light grey background color */
-                border-radius: 3px;
-    
-            }
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f2e9e9;
+           }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin: 40px auto;
+            border-radius: 10px;
+            background-color: white;
+            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+        }
+        
+        .header {
+            color: #832729;
+            padding: 20px;
+            border-bottom: 2px solid #f2e9e9;
+            text-align: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #832729;
+          }
+
+        .content {
+            padding: 20px;
+            color: #333;
+        }
+        
+        .footer {
+            color: #832729;
+            text-align: center;
+            padding: 20px;
+            background-color: #f2e9e9;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .header img {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+        }
+        
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        ul li {
+            background-color: #f2e9e9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+         p {         
+           margin: 10px 0;
+        }
         </style>
     </head>
     
     <body>
     <div class="container">
         <div class="header">
-            <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/dgg9v84gtpn3drrp8qce" height="300px" width="350px"></h2>
-            <h1 style="margin-top: 0;"> Account Deactivation on sarvadhi Solutions </h1>
+            <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>
+            <h1 style="margin-top: 0;"> Account Deactivation on Nishkar </h1>
         </div>
         <div class="content">
             <p>
                 Dear ${vendor.first_name},
             </p>
             <p>
-            We regret to inform you that your vendor account on Sarvadhi Solutions has been deactivated by our administrative team. This action has been taken due to policy violation.
+            We regret to inform you that your vendor account on Nishkar has been deactivated by our administrative team. This action has been taken due to policy violation.
             Please note that during this deactivation period, you will not be able to access your vendor dashboard or receive new orders from customers.<br>
             <br>
             If you believe this deactivation was made in error or have any concerns, please reach out to us at admin@gmail.com, and we will be happy to review your case.
@@ -320,7 +372,7 @@ const vendorDeactivation = async (req, res) => {
             </p>
             <p>
             Best regards,<br>
-            The Sarvadhi Solutions Team
+            Team Nishkar
             </p>
 
         </div>
