@@ -28,6 +28,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
       },
+      category:{
+        type:DataTypes.STRING,
+        allowNull: true,
+
+      },
       deletedAt: {
         type: DataTypes.DATE,
         allowNull: true

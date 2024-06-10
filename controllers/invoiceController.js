@@ -11,8 +11,6 @@ const {
 } = require("../models");
 
 const generateInvoiceHTML = (order) => {
-  console.log("Invoice HTML");
-
   const orderItemsHTML = order.orderItems
     .map(
       (item) => `
@@ -97,8 +95,6 @@ const generateInvoiceHTML = (order) => {
 };
 
 const generateInvoice = async (order_id) => {
-  console.log("Generate Invoice ");
-
   try {
     const order = await Order.findOne({
       where: { order_id },
@@ -142,25 +138,15 @@ const generateInvoice = async (order_id) => {
     }
 
     const htmlContent = generateInvoiceHTML(order);
-    console.log("After Generate HTML");
 
-    const browser = await puppeteer.launch({ headless: false, timeout: 120000 });
-    console.log("browser : ", browser);
-
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    console.log("page : ", page);
 
-    await page.setContent(htmlContent, { timeout: 120000 });
-    // await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 60000 });
-
-    console.log("After Set Content");
-
+    await page.setContent(htmlContent, { waitUntil: "networkidle0", timeout: 60000 }); // Increased timeout to 60s
     const filePath = `./invoices/${order_id}.pdf`;
-    console.log("filePath : ", filePath);
-    
-    await page.pdf({ path: filePath, format: "A4" });
+
+    await page.pdf({ path: filePath, format: "A4", printBackground: true }); // Ensure background is printed
     await browser.close();
-    console.log("After Close");
 
     return filePath;
   } catch (error) {
@@ -175,19 +161,15 @@ const downloadInvoice = async (req, res) => {
   try {
     const filePath = await generateInvoice(order_id);
 
-    // Set headers to download the file
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${order_id}.pdf"`
-    );
-    // Send the file as a response
+    res.setHeader("Content-Disposition", `attachment; filename="${order_id}.pdf"`);
+
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
 
-    // Remove the file after sending
     fileStream.on("close", () => {
       fs.unlinkSync(filePath);
+      
     });
   } catch (error) {
     console.error("Error downloading invoice:", error);
