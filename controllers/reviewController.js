@@ -1,20 +1,36 @@
 const { Review,User } = require("../models");
 
-exports.addReview = async (req, res) => {
+exports.addOrUpdateReview = async (req, res) => {
   const { user_id, product_id, ratings, review_text } = req.body;
 
   try {
-    const review = await Review.create({
-      user_id,
-      product_id,
-      ratings,
-      review_text,
+    const existingReview = await Review.findOne({
+      where: { user_id, product_id },
     });
-    res.status(201).json({ success: true, review });
+
+    if (existingReview) {
+      existingReview.ratings = ratings;
+      existingReview.review_text = review_text;
+      await existingReview.save();
+
+      res.status(200).json({ 
+        success: true, 
+        message: "Review updated successfully", 
+        review: existingReview 
+      });
+    } else {
+      const newReview = await Review.create({
+        user_id,
+        product_id,
+        ratings,
+        review_text,
+      });
+      res.status(201).json({ success: true, review: newReview });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "An error occurred while adding the review",
+      message: "An error occurred while adding or updating the review",
       error,
     });
   }
