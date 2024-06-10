@@ -9,7 +9,6 @@ const multer = require('multer');
 const upload = multer({dest:'uploads/banners/'});
 
 // Public routes
-router.get('/', bannerController.getAllBanners);
 router.get('/active', bannerController.getActiveBanners);
 
 // Admin-only routes

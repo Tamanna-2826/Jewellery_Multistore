@@ -4,7 +4,7 @@ const fs = require("fs");
 
 const createBanner = async (req, res) => {
   try {
-    const { title,is_active } = req.body;
+    const { title, is_active } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "No image file provided" });
@@ -18,7 +18,7 @@ const createBanner = async (req, res) => {
     const banner = await Banner.create({
       image_url: bannerImageId,
       title,
-      is_active
+      is_active,
     });
 
     res
@@ -56,13 +56,14 @@ const updateBanner = async (req, res) => {
     banner.is_active = is_active;
     await banner.save();
 
-    res.status(200).json({ message: "Banner Updated Successfully", data: banner });
+    res
+      .status(200)
+      .json({ message: "Banner Updated Successfully", data: banner });
   } catch (error) {
     console.error("Error updating banner:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 const deleteBanner = async (req, res) => {
   try {
@@ -78,26 +79,6 @@ const deleteBanner = async (req, res) => {
   }
 };
 
-const getAllBanners = async (req, res) => {
-  try {
-    const banners = await Banner.findAll();
-    if (banners.length === 0) {
-      return res.status(404).json({ message: "No banners found" });
-    }
-
-    banners.forEach((banner) => {
-      if (banner.image_url) {
-        banner.imageURL = `https://res.cloudinary.com/dyjgvi4ma/image/upload/banners/${banner.image_url}`;
-      }
-    });
-
-    res.status(200).json({ message: "Banners Fetched Successfully ", data: banners });
-  } catch (error) {
-    console.error("Error getting banners:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
 // Get active banners
 const getActiveBanners = async (req, res) => {
   try {
@@ -106,22 +87,28 @@ const getActiveBanners = async (req, res) => {
         is_active: true,
       },
     });
-    banners.forEach((banner) => {
-      if (banner.image_url) {
-        banner.imageURL = `https://res.cloudinary.com/dyjgvi4ma/image/upload/banners/${banner.image_url}`;
-      }
+
+    const bannersWithUrls = banners.map(banner => ({
+      banner_id: banner.banner_id,
+      title: banner.title,
+      is_active: banner.is_active,
+      image_url: banner.image_url 
+        ? `https://res.cloudinary.com/dyjgvi4ma/image/upload/${banner.image_url}` 
+        : null,
+    }));
+
+    res.status(200).json({
+      message: "Banners fetched successfully",
+      data: bannersWithUrls,
     });
-    res.status(200).json({ message: "Banners Fetched Successfully ", data: banners });
   } catch (error) {
     console.error("Error getting active banners:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 module.exports = {
   createBanner,
   updateBanner,
   deleteBanner,
-  getAllBanners,
   getActiveBanners,
 };

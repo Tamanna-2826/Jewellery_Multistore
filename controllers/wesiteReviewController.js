@@ -41,6 +41,7 @@ const getApprovedReviews = async (req, res) => {
       include: [
         {
           model: User,
+          as:'user',
           attributes: ['first_name', 'last_name'],
         },
       ],
@@ -58,6 +59,7 @@ const getPendingReviews = async (req, res) => {
       include: [
         {
           model: User,
+          as:'user',
           attributes: ['first_name', 'last_name'],
         },
       ],
@@ -75,6 +77,7 @@ const getRejectedReviews = async (req, res) => {
       include: [
         {
           model: User,
+          as:'user',
           attributes: ['first_name', 'last_name'],
         },
       ],
