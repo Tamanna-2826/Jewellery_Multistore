@@ -710,7 +710,7 @@ const updateAdminOrderStatus = async (req, res) => {
          <p>Best regards,<br>Team Nishkar</p>
          </div>
          <div class="footer">
-             <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+             <p>If you have any questions, please contact our support team at support@nishkar.com</p>
          </div>
          </div>
        </body>
@@ -806,7 +806,7 @@ const updateAdminOrderStatus = async (req, res) => {
           <p>Best regards,<br>Team Nishkar</p>
           </div>
           <div class="footer">
-              <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+              <p>If you have any questions, please contact our support team at support@nishkar.com</p>
           </div>
           </div>
         </body>

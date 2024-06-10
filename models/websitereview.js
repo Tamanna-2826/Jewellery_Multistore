@@ -12,9 +12,10 @@ module.exports = (sequelize, DataTypes) => {
   }
   WebsiteReview.init({
     review_id: {
-      type: DataTypes.INTEGER,
       allowNull: false,
+      autoIncrement: true,
       primaryKey: true,
+      type: DataTypes.INTEGER
     },
     user_id: {
       type: DataTypes.INTEGER,

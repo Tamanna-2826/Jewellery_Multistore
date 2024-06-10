@@ -366,7 +366,7 @@ const vendorDeactivation = async (req, res) => {
             We regret to inform you that your vendor account on Nishkar has been deactivated by our administrative team. This action has been taken due to policy violation.
             Please note that during this deactivation period, you will not be able to access your vendor dashboard or receive new orders from customers.<br>
             <br>
-            If you believe this deactivation was made in error or have any concerns, please reach out to us at admin@gmail.com, and we will be happy to review your case.
+            If you believe this deactivation was made in error or have any concerns, please reach out to us at admin@nishkar.com , and we will be happy to review your case.
            <br>
             Thank you for your understanding.
             </p>

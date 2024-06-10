@@ -1,4 +1,4 @@
-const { WebsiteReview } = require("../models");
+const { WebsiteReview, User } = require("../models");
 
 const addWebsiteReview = async (req, res) => {
   try {
@@ -8,7 +8,6 @@ const addWebsiteReview = async (req, res) => {
       ratings,
       review_text,
       status: "pending",
-
     });
     res.status(201).json(newReview);
   } catch (error) {
@@ -39,28 +38,48 @@ const getApprovedReviews = async (req, res) => {
   try {
     const approvedReviews = await WebsiteReview.findAll({
       where: { status: "approved" },
+      include: [
+        {
+          model: User,
+          attributes: ['first_name', 'last_name'],
+        },
+      ],
     });
     res.status(200).json(approvedReviews);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const getPendingReviews = async (req, res) => {
   try {
-    const approvedReviews = await WebsiteReview.findAll({
+    const pendingReviews = await WebsiteReview.findAll({
       where: { status: "pending" },
+      include: [
+        {
+          model: User,
+          attributes: ['first_name', 'last_name'],
+        },
+      ],
     });
-    res.status(200).json(approvedReviews);
+    res.status(200).json(pendingReviews);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const getRejectedReviews = async (req, res) => {
   try {
-    const approvedReviews = await WebsiteReview.findAll({
+    const rejectedReviews = await WebsiteReview.findAll({
       where: { status: "reject" },
+      include: [
+        {
+          model: User,
+          attributes: ['first_name', 'last_name'],
+        },
+      ],
     });
-    res.status(200).json(approvedReviews);
+    res.status(200).json(rejectedReviews);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

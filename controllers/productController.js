@@ -230,7 +230,7 @@ const softDeleteProduct = async (req, res) => {
                  <img src="${imageUrl}" alt="Product Image" height="150px" width="150px"><br> 
             </p>
           <p>Please note that during this deactivation period, customers will not be able to purchase or view this product on our website.
-          If you believe this deactivation was made in error or have any concerns, please reach out to us at admin@gmail.com, and we will be happy to review your case.
+          If you believe this deactivation was made in error or have any concerns, please reach out to us at  admin@nishkar.com , and we will be happy to review your case.
           Thank you for your understanding. <br>
           Best regards,
           Team Nishkar
@@ -238,7 +238,7 @@ const softDeleteProduct = async (req, res) => {
 
         </div>
         <div class="footer">
-        If you have any questions, please contact our support team at projectsarvadhi@gmail.com
+        If you have any questions, please contact our support team at  support@nishkar.com
         </div>
     </div>
     </body>

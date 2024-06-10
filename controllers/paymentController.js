@@ -478,7 +478,7 @@ const handleStripeWebhook = async (req, res) => {
             Team Nishkar
             </div>
             <div class="footer">
-                <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+                <p>If you have any questions, please contact our support team at  support@nishkr.com</p>
             </div>
             </div>
           </body>
@@ -582,7 +582,7 @@ const handleStripeWebhook = async (req, res) => {
                         Team Nishkar
                         </div>
                         <div class="footer">
-                            <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+                            <p>If you have any questions, please contact our support team at  support@nishkar.com</p>
                         </div>
                         </div>
                       </body>
