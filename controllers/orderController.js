@@ -253,6 +253,7 @@ const getAdminDetailedOrderDetails = async (req, res) => {
           as: "orderItems",
           attributes: [
             "product_id",
+            "vendor_status",
             "quantity",
             "unit_price",
             "cgst",
@@ -428,6 +429,7 @@ const getVendorDetailedOrderDetails = async (req, res) => {
           as: "orderItems",
           attributes: [
             "orderItem_id",
+            "vendor_status",
             "product_id",
             "quantity",
             "unit_price",

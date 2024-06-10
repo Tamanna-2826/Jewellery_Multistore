@@ -1,6 +1,6 @@
 const { Review,User } = require("../models");
 
-exports.addOrUpdateReview = async (req, res) => {
+const addOrUpdateReview = async (req, res) => {
   const { user_id, product_id, ratings, review_text } = req.body;
 
   try {
@@ -35,8 +35,7 @@ exports.addOrUpdateReview = async (req, res) => {
     });
   }
 };
-
-exports.getProductReviews = async (req, res) => {
+const getProductReviews = async (req, res) => {
   const { product_id } = req.params;
 
   try {
@@ -59,3 +58,4 @@ exports.getProductReviews = async (req, res) => {
     });
   }
 };
+module.exports = { addOrUpdateReview,getProductReviews}
