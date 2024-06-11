@@ -254,7 +254,7 @@ const vendorActivation = async (req, res) => {
               </p>
           </div>
           <div class="footer">
-              <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+            <p>If you have any questions, please contact our support team at support@nishkar.com</p>
           </div>
       </div>
       </body>
@@ -367,7 +367,7 @@ const vendorDeactivation = async (req, res) => {
             Please note that during this deactivation period, you will not be able to access your vendor dashboard or receive new orders from customers.<br>
             <br>
             If you believe this deactivation was made in error or have any concerns, please reach out to us at admin@nishkar.com , and we will be happy to review your case.
-           <br>
+           <br><br>
             Thank you for your understanding.
             </p>
             <p>
@@ -377,7 +377,7 @@ const vendorDeactivation = async (req, res) => {
 
         </div>
         <div class="footer">
-            <p>If you have any questions, please contact our support team at projectsarvadhi@gmail.com</p>
+            <p>If you have any questions, please contact our support team at support@nishkar.com </p>
         </div>
     </div>
     </body>

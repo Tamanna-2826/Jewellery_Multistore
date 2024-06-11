@@ -142,42 +142,42 @@ const softDeleteProduct = async (req, res) => {
     const imageUrl = `https://res.cloudinary.com/dyjgvi4ma/image/upload/${product.p_images[0]}`;
 
     const htmlContent = `
-     <html>
-                    <head>
-                        <style>
-                            body {
+ <html>
+
+<head>
+    <style>
+        body {
             font-family: Arial, sans-serif;
             padding: 0;
             margin: 0;
             background-color: #f2e9e9;
-           }
-        
+        }
+
         .container {
             max-width: 600px;
             padding: 20px;
             margin: 40px auto;
             border-radius: 10px;
             background-color: white;
-            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
         }
-        
+
         .header {
             color: #832729;
             padding: 20px;
             border-bottom: 2px solid #f2e9e9;
             text-align: center;
         }
-        
+
         h1 {
             text-align: center;
             color: #832729;
-          }
+        }
 
         .content {
             padding: 20px;
             color: #333;
         }
-        
+
         .footer {
             color: #832729;
             text-align: center;
@@ -185,66 +185,73 @@ const softDeleteProduct = async (req, res) => {
             background-color: #f2e9e9;
             border-radius: 0 0 10px 10px;
         }
-        
+
         .header img {
             width: 100%;
             max-width: 350px;
             height: auto;
         }
-        
+
         ul {
             list-style-type: none;
             padding: 0;
         }
-        
+
         ul li {
             background-color: #f2e9e9;
             margin: 10px 0;
             padding: 10px;
             border-radius: 5px;
         }
-         p {         
-           margin: 10px 0;
+
+        p {
+            margin: 10px 0;
         }
-        </style>
-    </head>
-    
-    <body>
+    </style>
+</head>
+
+<body>
     <div class="container">
         <div class="header">
-        <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2>
-            <h1 style="margin-top: 0;">Product Deactivation Notification</h1>
+            <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png"
+                    height="300px" width="350px"></h2>
+            <h1 style="margin-top: 0;">Product Deactivation</h1>
         </div>
         <div class="content">
             <p>
                 Dear ${vendor.first_name},
             </p>
             <p>
-            We regret to inform you that one of your products on Nishkar has been deactivated by our administrative team. <br>
+                We regret to inform you that one of your products on Nishkar has been deactivated by our administrative
+                team. <br>
             </p>
             <p>
-            The deactivated product is: <br>
-             Product Name: ${product.product_name}<br>
-                Price: ${product.selling_price} Rs. <br>
-                Image:<br>
-                 <img src="${imageUrl}" alt="Product Image" height="150px" width="150px"><br> 
-            </p>
-          <p>Please note that during this deactivation period, customers will not be able to purchase or view this product on our website.
-          If you believe this deactivation was made in error or have any concerns, please reach out to us at  admin@nishkar.com , and we will be happy to review your case.
-          Thank you for your understanding. <br>
-          Best regards,
-          Team Nishkar
-          <p>Thank you</p>
+                The deactivated product is: <br>
+                Product Name: ${product.product_name}<br>
+                Price: ${product.selling_price} Rs.
+                <br> <br>
+                Image:<br><br>
+                <img src="${imageUrl}" alt="Product Image" height="150px" width="150px"><br>
+            </p><br>
+            <p>Please note that during this deactivation period, customers will not be able to purchase or view this
+                product on our website.
+                If you believe this deactivation was made in error or have any concerns, please reach out to us at
+                admin@nishkar.com , and we will be happy to review your case.
+                <br><br>
+                Thank you for your understanding. <br><br>
+                Best regards,<br>
+                Team Nishkar
 
         </div>
         <div class="footer">
-        If you have any questions, please contact our support team at  support@nishkar.com
+            <p>If you have any questions, please contact our support team at support@nishkar.com</p>
         </div>
     </div>
-    </body>
-    </html>
+</body>
+
+</html>
    `;
-    sendEmail(vendor.email, "Product Deletion Notification", htmlContent);
+    sendEmail(vendor.email, "Product Deactivation ", htmlContent);
     res.json({ message: "Product soft-deleted successfully" });
   } catch (error) {
     console.error("Error soft-deleting Product:", error.message);
@@ -559,6 +566,7 @@ const updateProduct = async (req, res) => {
 const searchProducts = async (req, res) => {
   try {
     const query = req.query.q;
+    console.log("QUERY : ",query)
     const products = await Product.findAll({
       where: {
         [Op.or]: [

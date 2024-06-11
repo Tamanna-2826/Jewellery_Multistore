@@ -21,6 +21,8 @@ const customerRoutes = require("./routes/customerRoutes");
 const bannerRoutes = require("./routes/bannerRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const websiteReviweRoutes = require("./routes/websiteReviewRoutes");
+const countRoutes = require("./routes/countRoutes");
+
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use("/customer", customerRoutes);
 app.use("/banner", bannerRoutes);
 app.use("/invoice", invoiceRoutes);
 app.use("/website-reviews", websiteReviweRoutes);
+app.use("/count", countRoutes);
+
 
 sequelize
   .sync()
