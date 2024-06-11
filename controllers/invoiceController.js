@@ -1,5 +1,7 @@
 const fs = require("fs");
-const puppeteer = require("puppeteer");
+const pdf = require("html-pdf"); // Import the html-pdf library
+const path = require("path"); // Import the path module
+
 const {
   Order,
   OrderItem,
@@ -9,6 +11,12 @@ const {
   City,
   State,
 } = require("../models");
+
+const invoiceDir = path.join(__dirname, "invoices");
+
+if (!fs.existsSync(invoiceDir)) {
+  fs.mkdirSync(invoiceDir);
+}
 
 const generateInvoiceHTML = (order) => {
   const orderItemsHTML = order.orderItems
@@ -27,71 +35,71 @@ const generateInvoiceHTML = (order) => {
   const address = order.address;
 
   return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f2e9e9; }
-        .invoice-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border: 1px solid #832729; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        .header { text-align: center; margin-bottom: 40px; }
-        .header img { max-width: 150px; }
-        .header h1 { margin: 10px 0 0; font-size: 32px; color: #832729; font-weight: bold; }
-        .header p { margin: 5px 0 0; font-size: 16px; color: #666; }
-        .details, .items { margin-top: 30px; }
-        .details p, .items p { margin: 0; line-height: 1.5; }
-        .items h2 { font-size: 22px; color: #832729; margin-bottom: 15px; border-bottom: 1px solid #832729; padding-bottom: 5px; }
-        .items table { width: 100%; border-collapse: collapse; margin-top: 10px; background-color: #f2e9e9; }
-        .items table, .items th, .items td { border: 1px solid #832729; }
-        .items th, .items td { padding: 12px; text-align: left; }
-        .items th { background-color: #832729; color: #fff; font-weight: bold; }
-        .totals { margin-top: 40px; text-align: right; }
-        .totals p { margin: 10px 0; font-size: 18px; }
-        .totals p.total { font-weight: bold; font-size: 24px; color: #832729; }
-    </style>
-        <title>Invoice</title>
-    </head>
-    <body>
-        <div class="invoice-container">
-            <div class="header">
-                <img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" alt="Logo">
-                <h1>Invoice</h1>
-            </div>
-            <div class="details">
-                <p> <b>Order ID <t style="margin-left:3.5%">: </t></b> <span style="margin-left:2%">${order.order_id}</span></p>
-            <p><b>Customer <t style="margin-left:2%">:</b> <t style="margin-left:2%">${order.user.first_name} ${order.user.last_name}</p>
-            <p><b>Email<t style="margin-left:7.5%">:</b> <t style="margin-left:2%"> ${order.user.email}</p>
-                <p><b>Order Date <t style="margin-left:1%">:</b> <span style="margin-left:2%">${new Date(order.order_date).toLocaleDateString('en-GB')}</span></p>
-            <p><b>Address <t style="margin-left:4%">: </b> <t style="margin-left:2%">${address.street_address}, ${address.city.city_name}, ${address.state.state_name}, ${address.pincode}, ${address.country}</p>
-            </div>
-            <div class="items">
-                <h2>Order Items</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product Name</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${orderItemsHTML}
-                    </tbody>
-                </table>
-            </div>
-            <div class="totals">
-                 <p><span>Subtotal:</span> <span class="value">${order.subtotal}</span></p>
-                ${order.discount_value > 0 ? `<p><span>Discount:</span> <span class="value">${order.discount_value}</span></p>` : ""}
-                <p><span style="display: inline-block; width: 150px; margin-right:9%">GST:</span> <span class="value">3%</span></p>
-                <p class="total"><span>Total:</span> <span class="value">${order.total_amount}</span></p>
-        </div>
-            </div>
-        </div>
-    </body>
-    </html>
-  `;
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+      body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f2e9e9; }
+      .invoice-container { max-width: 800px; margin: 50px auto; padding: 40px; background-color: #fff; border: 1px solid #832729; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+      .header { text-align: center; margin-bottom: 40px; }
+      .header img { max-width: 150px; }
+      .header h1 { margin: 10px 0 0; font-size: 32px; color: #832729; font-weight: bold; }
+      .header p { margin: 5px 0 0; font-size: 16px; color: #666; }
+      .details, .items { margin-top: 30px; }
+      .details p, .items p { margin: 0; line-height: 1.5; }
+      .items h2 { font-size: 22px; color: #832729; margin-bottom: 15px; border-bottom: 1px solid #832729; padding-bottom: 5px; }
+      .items table { width: 100%; border-collapse: collapse; margin-top: 10px; background-color: #f2e9e9; }
+      .items table, .items th, .items td { border: 1px solid #832729; }
+      .items th, .items td { padding: 12px; text-align: left; }
+      .items th { background-color: #832729; color: #fff; font-weight: bold; }
+      .totals { margin-top: 40px; text-align: right; }
+      .totals p { margin: 10px 0; font-size: 18px; }
+      .totals p span { display: inline-block; width: 150px; }
+      .totals p.total { font-weight: bold; font-size: 24px; color: #832729; }
+  </style>
+      <title>Invoice</title>
+  </head>
+  <body>
+      <div class="invoice-container">
+          <div class="header">
+              <img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" alt="Logo">
+              <h1>Invoice</h1>
+          </div>
+          <div class="details">
+              <p><b>Order ID:</b> ${order.order_id}</p>
+              <p><b>Customer:</b> ${order.user.first_name} ${order.user.last_name}</p>
+              <p><b>Email:</b> ${order.user.email}</p>
+              <p><b>Order Date:</b> ${new Date(order.order_date).toLocaleDateString("en-GB")}</p>
+              <p><b>Address:</b> ${address.street_address}, ${address.city.city_name }, ${address.state.state_name}, ${address.pincode}, ${address.country}</p>
+          </div>
+          <div class="items">
+              <h2>Order Items</h2>
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Product Name</th>
+                          <th>Quantity</th>
+                          <th>Unit Price</th>
+                          <th>Total</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      ${orderItemsHTML}
+                  </tbody>
+              </table>
+          </div>
+          <div class="totals">
+              <p><span>Subtotal:</span> <span>${order.subtotal}</span></p>
+              ${order.discount_value > 0? `<p><span>Discount:</span> <span>${order.discount_value}</span></p>` : ""}
+              <p><span>GST:</span> <span>3%</span></p>
+              <p class="total"><span>Total:</span> <span>${order.total_amount }</span></p>
+          </div>
+      </div>
+  </body>
+  </html>
+`;
 };
 
 const generateInvoice = async (order_id) => {
@@ -139,14 +147,27 @@ const generateInvoice = async (order_id) => {
 
     const htmlContent = generateInvoiceHTML(order);
 
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+    const filePath = path.join(invoiceDir, `${order_id}.pdf`);
 
-    await page.setContent(htmlContent, { waitUntil: "networkidle0", timeout: 60000 }); // Increased timeout to 60s
-    const filePath = `./invoices/${order_id}.pdf`;
+    const options = {
+      format: "A4",
+      border: {
+        top: "0.5in",
+        right: "0.5in",
+        bottom: "0.5in",
+        left: "0.5in",
+      },
+    };
 
-    await page.pdf({ path: filePath, format: "A4", printBackground: true }); // Ensure background is printed
-    await browser.close();
+    await new Promise((resolve, reject) => {
+      pdf.create(htmlContent, options).toFile(filePath, (err, res) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    });
 
     return filePath;
   } catch (error) {
@@ -162,14 +183,16 @@ const downloadInvoice = async (req, res) => {
     const filePath = await generateInvoice(order_id);
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${order_id}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${order_id}.pdf"`
+    );
 
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
 
     fileStream.on("close", () => {
       fs.unlinkSync(filePath);
-      
     });
   } catch (error) {
     console.error("Error downloading invoice:", error);

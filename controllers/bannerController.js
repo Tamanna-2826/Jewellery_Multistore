@@ -4,7 +4,7 @@ const fs = require("fs");
 
 const createBanner = async (req, res) => {
   try {
-    const { title, is_active,category } = req.body;
+    const { title, is_active, category } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "No image file provided" });
@@ -19,7 +19,7 @@ const createBanner = async (req, res) => {
       image_url: bannerImageId,
       title,
       is_active,
-      category
+      category,
     });
 
     res
@@ -34,7 +34,7 @@ const createBanner = async (req, res) => {
 const updateBanner = async (req, res) => {
   try {
     const { banner_id } = req.params;
-    const { title, is_active,category } = req.body;
+    const { title, is_active, category } = req.body;
 
     const banner = await Banner.findByPk(banner_id);
     if (!banner) return res.status(404).json({ message: "Banner not found" });
@@ -55,7 +55,7 @@ const updateBanner = async (req, res) => {
     // Update banner details
     banner.title = title;
     banner.is_active = is_active;
-    banner.category=category;
+    banner.category = category;
     await banner.save();
 
     res
@@ -93,7 +93,7 @@ const getActiveBanners = async (req, res) => {
     const bannersWithUrls = banners.map((banner) => ({
       banner_id: banner.banner_id,
       title: banner.title,
-      category:banner.category,
+      category: banner.category,
       is_active: banner.is_active,
       image_url: banner.image_url
         ? `https://res.cloudinary.com/dyjgvi4ma/image/upload/${banner.image_url}`
@@ -140,10 +140,37 @@ const getBannersByCategory = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+//Get all banners
+const getAllBanners = async (req, res) => {
+  try {
+    const banners = await Banner.findAll();
+
+    const bannersWithUrls = banners.map((banner) => ({
+      banner_id: banner.banner_id,
+      title: banner.title,
+      category: banner.category,
+      createdAt: banner.createdAt,
+      is_active: banner.is_active,
+      image_url: banner.image_url
+        ? `https://res.cloudinary.com/dyjgvi4ma/image/upload/${banner.image_url}`
+        : null,
+    }));
+
+    res.status(200).json({
+      message: "Banners fetched successfully",
+      data: bannersWithUrls,
+    });
+  } catch (error) {
+    console.error("Error getting active banners:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 module.exports = {
   createBanner,
   updateBanner,
   deleteBanner,
   getActiveBanners,
+  getAllBanners,
   getBannersByCategory,
 };

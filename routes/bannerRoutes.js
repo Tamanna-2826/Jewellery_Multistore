@@ -7,6 +7,7 @@ const upload = multer({dest:'uploads/banners/'});
 
 // Public routes
 router.get('/active', bannerController.getActiveBanners);
+router.get('/all-banners', bannerController.getAllBanners);
 
 router.get('/bannersByCategory/:category', bannerController.getBannersByCategory);
 
