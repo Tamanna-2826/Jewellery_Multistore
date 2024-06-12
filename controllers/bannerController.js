@@ -1,7 +1,7 @@
 const { Banner } = require("../models");
 const cloudinary = require("../config/cloudinaryConfig");
 const fs = require("fs");
-
+const path = require("path");
 const createBanner = async (req, res) => {
   try {
     const { title, is_active, category } = req.body;
@@ -21,6 +21,10 @@ const createBanner = async (req, res) => {
       is_active,
       category,
     });
+
+   // Delete the uploaded file from the local system
+    const filePath = path.join(__dirname, "..", req.file.path);
+    fs.unlinkSync(filePath);
 
     res
       .status(200)
@@ -118,6 +122,7 @@ const getBannersByCategory = async (req, res) => {
     const banners = await Banner.findAll({
       where: {
         category,
+        is_active: true,
       },
     });
 

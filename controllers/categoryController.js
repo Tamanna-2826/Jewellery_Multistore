@@ -1,5 +1,7 @@
 const { Category, Product } = require("../models");
 const cloudinary = require("../config/cloudinaryConfig");
+const fs = require('fs');
+const path = require('path');
 
 const addCategory = async (req, res) => {
   try {
@@ -15,11 +17,17 @@ const addCategory = async (req, res) => {
     }
 
     let categoryImage = null;
+
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "categories",
       });
+
       categoryImage = result.public_id;
+
+       const filePath = path.join(__dirname, '..', req.file.path);
+       fs.unlinkSync(filePath);
+     
     }
 
     const newCat = await Category.create({
@@ -27,9 +35,7 @@ const addCategory = async (req, res) => {
       category_image: categoryImage,
     });
 
-    res
-      .status(200)
-      .json({ message: "Category created successfully", data: newCat });
+    res .status(200).json({ message: "Category created successfully", data: newCat });
   } catch (error) {
     console.error("Error creating category:", error.message);
     res.status(500).json({ message: "Internal Server Error" });

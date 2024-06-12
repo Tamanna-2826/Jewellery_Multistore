@@ -16,6 +16,10 @@ const {
 const { sendEmail } = require("../helpers/emailHelper");
 const { Op } = require("sequelize");
 
+//ADDED
+const { sendInvoicesToVendors } = require("./invoiceController");
+
+
 const generateOrderTrackingId = () => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let trackingId = "";
@@ -478,7 +482,7 @@ const handleStripeWebhook = async (req, res) => {
             Team Nishkar
             </div>
             <div class="footer">
-                <p>If you have any questions, please contact our support team at  support@nishkr.com</p>
+                <p>If you have any questions, please contact our support team at  support@nishkar.com</p>
             </div>
             </div>
           </body>
@@ -499,10 +503,10 @@ const handleStripeWebhook = async (req, res) => {
         });
 
         const vendorHtmlContent = `
-                <html>
-                    <head>
-                        <style>
-                            body {
+        <html>
+      <head>
+      <style>
+      body {
             font-family: Arial, sans-serif;
             padding: 0;
             margin: 0;
@@ -515,7 +519,7 @@ const handleStripeWebhook = async (req, res) => {
             margin: 40px auto;
             border-radius: 10px;
             background-color: white;
-            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
         .header {
@@ -594,6 +598,7 @@ const handleStripeWebhook = async (req, res) => {
           vendorHtmlContent
         );
       }
+      await sendInvoicesToVendors(order.order_id);
 
       return res
         .status(200)

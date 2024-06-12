@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 const { Product, Vendor, Category, State, OrderItem } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
 const cloudinary = require("../config/cloudinaryConfig");
@@ -55,6 +58,10 @@ const addProduct = async (req, res) => {
         folder: "products",
       });
       productImages.push(result.public_id);
+
+       // Delete the uploaded file from the local system
+       const filePath = path.join(__dirname, '..', file.path);
+       fs.unlinkSync(filePath);
     }
     const newProduct = await Product.create({
       category_id,
@@ -77,9 +84,7 @@ const addProduct = async (req, res) => {
       p_images: productImages,
     });
 
-    res
-      .status(200)
-      .json({ message: "Image uploaded Successfully ", newProduct });
+    res.status(200).json({ message: "Image uploaded Successfully ", newProduct });
   } catch (error) {
     console.error("Error creating product:", error.message);
     res.status(500).json({ error: "Internal Server Error" });

@@ -2,7 +2,6 @@ const { Product, Category, User, Vendor, Order, OrderItem,Coupon } = require('..
 
 const getCountsForAdmin = async (req, res) => {
     try {
-        console.log('Request body:', req.body); 
         const productCount = await Product.count();
         const categoryCount = await Category.count();
         const userCount = await User.count();

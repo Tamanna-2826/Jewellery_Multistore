@@ -13,6 +13,7 @@ router.get('/bannersByCategory/:category', bannerController.getBannersByCategory
 
 // Admin-only routes
 router.post('/add', jwtMiddleware, isAdmin, upload.single('image_url'), bannerController.createBanner);
+
 router.put('/update/:banner_id',upload.single('image_url'), bannerController.updateBanner);
 
 router.delete('/delete/:banner_id', jwtMiddleware, isAdmin, bannerController.deleteBanner);

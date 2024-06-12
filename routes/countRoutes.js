@@ -6,7 +6,7 @@ const countController = require('../controllers/countController');
 
 // Route to get counts
 router.get('/admin', countController.getCountsForAdmin);
-router.get('/vendor', countController.getCountsForVendor);
+router.post('/vendor', countController.getCountsForVendor);
 
 
 module.exports = router;
