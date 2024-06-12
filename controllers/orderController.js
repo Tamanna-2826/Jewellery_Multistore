@@ -629,7 +629,7 @@ const updateAdminOrderStatus = async (req, res) => {
       const userSubject = "Your order has been delivered!";
       const userHtml = `
       <html>
-      <head>
+     <head>
           <style>
               body {
             font-family: Arial, sans-serif;
@@ -724,9 +724,9 @@ const updateAdminOrderStatus = async (req, res) => {
         const vendorSubject = "Order delivered - Product sold";
         const vendorHtml = `
         <html>
-        <head>
-            <style>
-                body {
+     <head>
+          <style>
+              body {
             font-family: Arial, sans-serif;
             padding: 0;
             margin: 0;
@@ -779,7 +779,7 @@ const updateAdminOrderStatus = async (req, res) => {
         }
         
         ul li {
-            // background-color: #f2e9e9;
+            background-color: #f2e9e9;
             margin: 10px 0;
             padding: 10px;
             border-radius: 5px;
@@ -787,8 +787,9 @@ const updateAdminOrderStatus = async (req, res) => {
          p {         
            margin: 10px 0;
         }
-            </style>
-        </head>
+              
+          </style>
+      </head>
    
         <body>
         <div class="container">

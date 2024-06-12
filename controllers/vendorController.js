@@ -10,7 +10,6 @@ const generateRandomPassword = () => {
   return password;
 };
 
-
 const vendorRegistration = async (req, res) => {
   try {
     const {
@@ -77,22 +76,21 @@ const vendorRegistration = async (req, res) => {
       active_status: "pending",
     });
 
-     // Handle file uploads and store public IDs
-     let aadharCopyPublicId = null;
-     if (req.files && req.files.aadhar_copy) {
-       aadharCopyPublicId = req.files.aadhar_copy[0].path;
-     }
- 
-     let panCopyPublicId = null;
-     if (req.files && req.files.pan_copy) {
-       panCopyPublicId = req.files.pan_copy[0].path;
-     }
- 
-     let addProfPublicId = null;
-     if (req.files && req.files.add_prof) {
-       addProfPublicId = req.files.add_prof[0].path;
-     }
- 
+    // Handle file uploads and store public IDs
+    let aadharCopyPublicId = null;
+    if (req.files && req.files.aadhar_copy) {
+      aadharCopyPublicId = req.files.aadhar_copy[0].path;
+    }
+
+    let panCopyPublicId = null;
+    if (req.files && req.files.pan_copy) {
+      panCopyPublicId = req.files.pan_copy[0].path;
+    }
+
+    let addProfPublicId = null;
+    if (req.files && req.files.add_prof) {
+      addProfPublicId = req.files.add_prof[0].path;
+    }
 
     const newVendorKYC = await VendorKYC.create({
       vendor_id: newVendor.vendor_id,
@@ -107,7 +105,12 @@ const vendorRegistration = async (req, res) => {
       ifsc_code,
     });
 
-    res.status(200).json({ message: "Vendor registered successfully", newVendor, newVendorKYC,
+    res
+      .status(200)
+      .json({
+        message: "Vendor registered successfully",
+        newVendor,
+        newVendorKYC,
       });
   } catch (error) {
     console.error("Error registering vendor:", error);
@@ -124,19 +127,19 @@ const getVendorDetails = async (req, res) => {
       include: [
         {
           model: VendorKYC,
-          as: 'kycDetails',
+          as: "kycDetails",
         },
       ],
     });
 
     if (!vendorDetails) {
-      return res.status(404).json({ message: 'Vendor not found' });
+      return res.status(404).json({ message: "Vendor not found" });
     }
 
     res.status(200).json({ vendor: vendorDetails });
   } catch (error) {
-    console.error('Error fetching vendor details:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching vendor details:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -162,9 +165,9 @@ const vendorActivation = async (req, res) => {
 
     const htmlContent = `
       <html>
-      <head>
+        <head>
           <style>
-             body {
+              body {
             font-family: Arial, sans-serif;
             padding: 0;
             margin: 0;
@@ -225,6 +228,7 @@ const vendorActivation = async (req, res) => {
          p {         
            margin: 10px 0;
         }
+              
           </style>
       </head>
       
@@ -286,9 +290,9 @@ const vendorDeactivation = async (req, res) => {
 
     const htmlContent = `
     <html>
-    <head>
-        <style>
-            body {
+        <head>
+          <style>
+              body {
             font-family: Arial, sans-serif;
             padding: 0;
             margin: 0;
@@ -349,8 +353,9 @@ const vendorDeactivation = async (req, res) => {
          p {         
            margin: 10px 0;
         }
-        </style>
-    </head>
+              
+          </style>
+      </head>
     
     <body>
     <div class="container">
@@ -383,11 +388,7 @@ const vendorDeactivation = async (req, res) => {
     </body>
     </html>`;
 
-    sendEmail(
-      vendor.email,
-      "Account Deactivation on sarvadhi Solutions",
-      htmlContent
-    );
+    sendEmail(vendor.email, "Account Deactivation on sNishkar", htmlContent);
 
     res.json({ success: true, message: "Vendor deactivated successfully" });
   } catch (error) {
@@ -478,5 +479,5 @@ module.exports = {
   vendorDeactivation,
   getdeactiveVendors,
   updateVendorPassword,
-  getVendorDetails
+  getVendorDetails,
 };
