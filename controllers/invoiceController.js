@@ -446,9 +446,9 @@ const downloadVendorInvoice = async (req, res) => {
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
     
-    // fileStream.on("close", () => {
-    //   fs.unlinkSync(filePath);
-    // });
+    fileStream.on("close", () => {
+      fs.unlinkSync(filePath);
+    });
 
   } catch (error) {
     console.error("Error downloading vendor invoice:", error);
