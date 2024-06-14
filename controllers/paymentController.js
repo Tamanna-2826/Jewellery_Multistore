@@ -14,11 +14,6 @@ const {
   Coupon,
 } = require("../models");
 const { sendEmail } = require("../helpers/emailHelper");
-const { Op } = require("sequelize");
-
-//ADDED
-const { sendInvoicesToVendors } = require("./invoiceController");
-
 
 const generateOrderTrackingId = () => {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -598,8 +593,10 @@ const handleStripeWebhook = async (req, res) => {
           vendorHtmlContent
         );
       }
-      await sendInvoicesToVendors(order.order_id);
-
+      try {
+      } catch (error) {
+        console.error("Error sending invoices to vendors:", error);
+      }
       return res
         .status(200)
         .json({ message: "Payment completed Successfully" });

@@ -571,7 +571,6 @@ const updateProduct = async (req, res) => {
 const searchProducts = async (req, res) => {
   try {
     const query = req.query.q;
-    console.log("QUERY : ",query)
     const products = await Product.findAll({
       where: {
         [Op.or]: [
