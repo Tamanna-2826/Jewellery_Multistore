@@ -192,9 +192,11 @@ const softDeleteProduct = async (req, res) => {
         }
 
         .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
+          display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
         }
 
         ul {

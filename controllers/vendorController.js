@@ -209,8 +209,10 @@ const vendorActivation = async (req, res) => {
         }
         
         .header img {
+            display: block;
+            margin: 0 auto;
             width: 100%;
-            max-width: 350px;
+            max-width: 200px;
             height: auto;
         }
         
@@ -305,7 +307,6 @@ const vendorDeactivation = async (req, res) => {
             margin: 40px auto;
             border-radius: 10px;
             background-color: white;
-            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
         }
         
         .header {
@@ -334,9 +335,11 @@ const vendorDeactivation = async (req, res) => {
         }
         
         .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
+           display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
         }
         
         ul {
@@ -388,7 +391,7 @@ const vendorDeactivation = async (req, res) => {
     </body>
     </html>`;
 
-    sendEmail(vendor.email, "Account Deactivation on sNishkar", htmlContent);
+    sendEmail(vendor.email, "Account Deactivation on Nishkar", htmlContent);
 
     res.json({ success: true, message: "Vendor deactivated successfully" });
   } catch (error) {

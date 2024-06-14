@@ -644,14 +644,12 @@ const updateAdminOrderStatus = async (req, res) => {
             margin: 40px auto;
             border-radius: 10px;
             background-color: white;
-            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
         }
         
         .header {
             color: #832729;
             padding: 20px;
             border-bottom: 2px solid #f2e9e9;
-            text-align: center;
         }
         
         h1 {
@@ -673,9 +671,11 @@ const updateAdminOrderStatus = async (req, res) => {
         }
         
         .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
+          display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
         }
         
         ul {
@@ -723,95 +723,93 @@ const updateAdminOrderStatus = async (req, res) => {
         const vendorEmail = item.product.vendor.email;
         const vendorSubject = "Order delivered - Product sold";
         const vendorHtml = `
-        <html>
-     <head>
-          <style>
-              body {
-            font-family: Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            background-color: #f2e9e9;
-           }
-        
-        .container {
-            max-width: 600px;
-            padding: 20px;
-            margin: 40px auto;
-            border-radius: 10px;
-            background-color: white;
-            /box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);/
-        }
-        
-        .header {
-            color: #832729;
-            padding: 20px;
-            border-bottom: 2px solid #f2e9e9;
-            text-align: center;
-        }
-        
-        h1 {
-            text-align: center;
-            color: #832729;
+       <html>
+    <head>
+         <style>
+             body {
+           font-family: Arial, sans-serif;
+           padding: 0;
+           margin: 0;
+           background-color: #f2e9e9;
           }
+       
+       .container {
+           max-width: 600px;
+           padding: 20px;
+           margin: 40px auto;
+           border-radius: 10px;
+           background-color: white;
+       }
+       
+       .header {
+           color: #832729;
+           padding: 20px;
+           border-bottom: 2px solid #f2e9e9;
+       }
+       
+       h1 {
+           text-align: center;
+           color: #832729;
+         }
 
-        .content {
-            padding: 20px;
-            color: #333;
-        }
-        
-        .footer {
-            color: #832729;
-            text-align: center;
-            padding: 20px;
-            background-color: #f2e9e9;
-            border-radius: 0 0 10px 10px;
-        }
-        
-        .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
-        }
-        
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        
-        ul li {
-            background-color: #f2e9e9;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-         p {         
+       .content {
+           padding: 20px;
+           color: #333;
+       }
+       
+       .footer {
+           color: #832729;
+           text-align: center;
+           padding: 20px;
+           background-color: #f2e9e9;
+           border-radius: 0 0 10px 10px;
+       }
+       
+       .header img {
+          display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
+       }
+       
+       ul {
+           list-style-type: none;
+           padding: 0;
+       }
+       
+       ul li {
            margin: 10px 0;
-        }
-              
-          </style>
-      </head>
-   
-        <body>
-        <div class="container">
-          <div class="header">
-           <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2> 
-          <h1>Product Delivered</h1>
-          <p>Hello ${item.product.vendor.first_name},</p>
-          <p>The product "${item.product.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>
-          <p>Order Details:</p>
-          <ul>
-            <li>Product: ${item.product.product_name}</li>
-            <li>Quantity: ${item.quantity}</li>
-            <li>Total: ${item.total_price}</li>
-          </ul>
-          <p>Best regards,<br>Team Nishkar</p>
-          </div>
-          <div class="footer">
-              <p>If you have any questions, please contact our support team at support@nishkar.com</p>
-          </div>
-          </div>
-        </body>
-      </html>
+           border-radius: 5px;
+       }
+        p {         
+          margin: 10px 0;
+       }
+             
+         </style>
+     </head>
+  
+       <body>
+       <div class="container">
+         <div class="header">
+          <h2><img src="https://res.cloudinary.com/dyjgvi4ma/image/upload/v1717778172/i0wmv4lts0wkopgpovsj.png" height="300px" width="350px"></h2> 
+         <h1>Product Delivered</h1>
+         <p>Hello ${item.product.vendor.first_name},</p>
+         <p>The product "${item.product.product_name}" from order #${order_id} has been successfully delivered to the customer.</p>
+         <p>Order Details:</p>
+         <ul>
+           <li>Product: ${item.product.product_name}</li>
+           <li>Quantity: ${item.quantity}</li>
+           <li>Total: ${item.total_price}</li>
+         </ul>
+         <p>Best regards,<br>Team Nishkar</p>
+         </div>
+         <div class="footer">
+             <p>If you have any questions, please contact our support team at support@nishkar.com</p>
+         </div>
+         </div>
+       </body>
+     </html>
         `;
         sendEmail(vendorEmail, vendorSubject, vendorHtml);
       }

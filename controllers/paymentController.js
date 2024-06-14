@@ -29,8 +29,6 @@ const generateOrderTrackingId = () => {
   return trackingId;
 };
 
-const IGST_RATE = 3;
-
 const createCheckoutSession = async (req, res) => {
   const { user_id, coupon_id } = req.body;
 
@@ -415,7 +413,6 @@ const handleStripeWebhook = async (req, res) => {
             color: #832729;
             padding: 20px;
             border-bottom: 2px solid #f2e9e9;
-            text-align: center;
         }
         
         h1 {
@@ -437,9 +434,11 @@ const handleStripeWebhook = async (req, res) => {
         }
         
         .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
+          display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
         }
         
         ul {
@@ -466,7 +465,7 @@ const handleStripeWebhook = async (req, res) => {
             <h1>Order  Received ! </h1>
             Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
             Thank you for your order on Nishkar! We're excited to process your purchase and have it delivered to you soon.<br><br>
-            Your order has been received with the following details:<br>
+            Your order has been received with the following details:<br><br>
             Order ID: ${order.order_id} <br>
             Order Date: ${formattedOrderDate}<br>
             Total Amount: ${totalPayable}<br><br>
@@ -521,7 +520,6 @@ const handleStripeWebhook = async (req, res) => {
             color: #832729;
             padding: 20px;
             border-bottom: 2px solid #f2e9e9;
-            text-align: center;
         }
         
         h1 {
@@ -543,9 +541,11 @@ const handleStripeWebhook = async (req, res) => {
         }
         
         .header img {
-            width: 100%;
-            max-width: 350px;
-            height: auto;
+          display: block;
+          margin: 0 auto;
+          width: 100%;
+          max-width: 200px;
+          height: auto;
         }
         
         ul {
@@ -571,7 +571,7 @@ const handleStripeWebhook = async (req, res) => {
                         <h1>New Order Received</h1>
                         Dear ${product.vendor.first_name},<br><br>
                         Congratulations! You have received a new order on Nishkar.<br>
-                        Here are the details:<br>
+                        Here are the details:<br><br>
                         Customer Name: ${customerDetails.first_name} ${customerDetails.last_name}<br>
                         Email: ${customerDetails.email}<br>
                         Phone: ${customerDetails.phone_no}<br>
