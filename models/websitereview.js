@@ -4,10 +4,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class WebsiteReview extends Model {
     static associate(models) {
-      WebsiteReview.belongsTo(models.User, {
-        foreignKey: 'user_id',
-        as: 'user',
-      });
+
     }
   }
   WebsiteReview.init({
@@ -17,9 +14,13 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       type: DataTypes.INTEGER
     },
-    user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+    first_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    last_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     ratings: {
       type: DataTypes.INTEGER,
