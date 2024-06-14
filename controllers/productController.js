@@ -622,16 +622,19 @@ const filterProducts = async (req, res) => {
       ],
     });
 
-    query = applySorting(query, req.query.sort, req.query.order);
-    query = applyPagination(query, req.query.page, req.query.limit);
+    query = await applySorting(query, req.query.sort, req.query.order);
 
-    const { rows: products, count: total } = await query;
+    const { rows, count } = query;
+    const products = await applyPagination(rows, req.query.page, req.query.limit);
+    const total = count;
+
     res.json({ products, total });
   } catch (error) {
     console.error("Filter error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 const getBestSellingProducts = async (req, res) => {
   try {
